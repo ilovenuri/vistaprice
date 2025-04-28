@@ -55,33 +55,40 @@ st.markdown("""
         max-width: 1200px;
         margin: 0 auto;
     }
+    .download-link {
+        margin-top: 10px;
+        font-size: 14px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
 # Title
 st.title("마케팅 효과 분석 및 판매량 예측 앱")
 
+# 1. 데이터 업로드 섹션
+st.header("1. 데이터 업로드")
+
 # Create three columns for the file uploaders
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.markdown('<div class="upload-section">', unsafe_allow_html=True)
-    st.markdown('<p class="section-title">SALES DATA</p>', unsafe_allow_html=True)
-    sales_file = st.file_uploader("Upload Sales Data", type=['csv'], key='sales_upload')
+    st.subheader("매출 데이터")
+    sales_file = st.file_uploader("CSV 파일을 업로드하세요", type=['csv'], key='sales_data')
+    st.markdown('<div class="download-link">', unsafe_allow_html=True)
     st.markdown(get_csv_download_link(sample_sales_data, "sales_template.csv"), unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col2:
-    st.markdown('<div class="upload-section">', unsafe_allow_html=True)
-    st.markdown('<p class="section-title">MARKETING DATA</p>', unsafe_allow_html=True)
-    marketing_file = st.file_uploader("Upload Marketing Data", type=['csv'], key='marketing_upload')
+    st.subheader("마케팅 비용 데이터")
+    marketing_file = st.file_uploader("CSV 파일을 업로드하세요", type=['csv'], key='marketing_data')
+    st.markdown('<div class="download-link">', unsafe_allow_html=True)
     st.markdown(get_csv_download_link(sample_marketing_data, "marketing_template.csv"), unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col3:
-    st.markdown('<div class="upload-section">', unsafe_allow_html=True)
-    st.markdown('<p class="section-title">PROMOTION DATA</p>', unsafe_allow_html=True)
-    promotion_file = st.file_uploader("Upload Promotion Data", type=['csv'], key='promotion_upload')
+    st.subheader("판촉행사 데이터")
+    promotion_file = st.file_uploader("CSV 파일을 업로드하세요", type=['csv'], key='promotion_data')
+    st.markdown('<div class="download-link">', unsafe_allow_html=True)
     st.markdown(get_csv_download_link(sample_promotion_data, "promotion_template.csv"), unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 

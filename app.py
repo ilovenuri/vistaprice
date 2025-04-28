@@ -127,16 +127,16 @@ if uploaded_file is not None:
         # Prophet 모델 학습
         st.subheader('2. 예측 모델 학습')
         model = Prophet(
-            growth='linear',  # 선형 성장 사용
+            growth='logistic',  # 로지스틱 성장 사용
             yearly_seasonality=True,
             weekly_seasonality=True,
-            daily_seasonality=False,  # 일별 계절성 비활성화
-            changepoint_prior_scale=0.05,  # 변화점 민감도 증가
-            seasonality_prior_scale=10.0,  # 계절성 강도 증가
-            changepoint_range=0.95,  # 변화점 범위
-            n_changepoints=25,  # 변화점 수 증가
-            interval_width=0.95,  # 예측 구간
-            seasonality_mode='multiplicative'  # 곱셈 계절성 사용
+            daily_seasonality=False,
+            changepoint_prior_scale=0.01,  # 변화점 민감도 조정
+            seasonality_prior_scale=0.1,  # 계절성 강도 조정
+            changepoint_range=0.8,  # 변화점 범위 조정
+            n_changepoints=15,  # 변화점 수 조정
+            interval_width=0.95,
+            seasonality_mode='multiplicative'
         )
         
         # 휴일 효과 추가
@@ -151,6 +151,10 @@ if uploaded_file is not None:
         # 이동평균을 리그레서로 추가
         df_prophet['MA7'] = df_prophet['y'].rolling(window=7, min_periods=1).mean()
         model.add_regressor('MA7')
+        
+        # 로지스틱 성장을 위한 cap과 floor 설정
+        df_prophet['cap'] = df_prophet['y'].max() * 1.5
+        df_prophet['floor'] = df_prophet['y'].min() * 0.5
         
         model.fit(df_prophet)
         
@@ -169,16 +173,22 @@ if uploaded_file is not None:
         last_ma = df_prophet['MA7'].iloc[-1]
         future_dates['MA7'] = last_ma
         
+        # 로지스틱 성장을 위한 cap과 floor 설정
+        future_dates['cap'] = df_prophet['cap'].iloc[-1]
+        future_dates['floor'] = df_prophet['floor'].iloc[-1]
+        
         forecast = model.predict(future_dates)
         
-        # 예측값이 음수인 경우 0으로 대체
-        forecast['yhat'] = forecast['yhat'].clip(lower=0)
-        forecast['yhat_lower'] = forecast['yhat_lower'].clip(lower=0)
-        forecast['yhat_upper'] = forecast['yhat_upper'].clip(lower=0)
+        # 예측값이 음수인 경우 최소값으로 대체
+        min_value = df_prophet['y'].min() * 0.5
+        forecast['yhat'] = forecast['yhat'].clip(lower=min_value)
+        forecast['yhat_lower'] = forecast['yhat_lower'].clip(lower=min_value)
+        forecast['yhat_upper'] = forecast['yhat_upper'].clip(lower=min_value)
         
         # 극단적인 예측값 제한
-        forecast['yhat'] = forecast['yhat'].clip(upper=max_y * 1.2)
-        forecast['yhat_upper'] = forecast['yhat_upper'].clip(upper=max_y * 1.5)
+        max_value = df_prophet['y'].max() * 1.2
+        forecast['yhat'] = forecast['yhat'].clip(upper=max_value)
+        forecast['yhat_upper'] = forecast['yhat_upper'].clip(upper=max_value * 1.5)
         
         # 예측 결과 시각화
         st.subheader('3. 예측 결과')

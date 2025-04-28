@@ -20,6 +20,12 @@ def get_csv_download_link(csv_string, filename):
     href = f'<a href="data:file/csv;base64,{b64}" download="{filename}" class="download-link">샘플 다운로드</a>'
     return href
 
+def prepare_data_for_prophet(df, date_column, value_column):
+    """Prophet 모델을 위한 데이터 전처리"""
+    prophet_df = df.groupby(date_column)[value_column].sum().reset_index()
+    prophet_df.columns = ['ds', 'y']  # Prophet requires these specific column names
+    return prophet_df
+
 # Sample data for CSV templates
 sample_sales_data = """⇅,판매일자,매장구분,매장코드,매장명,영수증번호,기획구분,판매유형,팀구분,상품코드,상품명,칼라,칼라명,사이즈,사이즈명,자사바코드,판매구분,매출구분,TAG가,사전원가,평균원가,현재가,판매예정단가,판매수량,할인(T.실)%,에누리,마일리지,상품권,즉시환급,판매단가,판매금액,실판매금액,순판매(할인제외),순판매(할인포함),수수료,TAG가합,사전원가합,평균원가합,행사구분,마진(%),중간관리(%),고객코드,고객명,판매원,수취인/주문인,특이사항,특이사항2,영수증특이사항,MD Concept Story,원구매정보,입력시간,영수증번호.1
 1,2024-01-01,온라인,ST001,온라인스토어,RN001,일반,정상판매,여성의류,P001,블라우스,BK,블랙,S,Small,B001,판매,일반,50000,30000,32000,45000,45000,1,10,0,0,0,0,40500,40500,40500,45000,40500,2000,50000,30000,32000,일반,19.0,5.0,C001,홍길동,판매자1,수취인1,,,,,,,09:00,RN001
@@ -162,8 +168,11 @@ if sales_file and marketing_file and promotion_file:
             promotion_df = promotion_df.rename(columns={'date': '판매일자'})
         promotion_df['판매일자'] = pd.to_datetime(promotion_df['판매일자'])
         
+        # Prepare data for Prophet
+        sales_prophet = prepare_data_for_prophet(sales_df, '판매일자', '실판매금액')
+        
         # Display the data in tabs
-        tab1, tab2, tab3 = st.tabs(["매출", "마케팅", "판촉행사"])
+        tab1, tab2, tab3, tab4 = st.tabs(["매출", "마케팅", "판촉행사", "예측"])
         
         with tab1:
             st.subheader("매출")
@@ -191,6 +200,57 @@ if sales_file and marketing_file and promotion_file:
             fig = px.scatter(promotion_df, x='판매일자', y='discount_rate', 
                            color='event_type', size='discount_rate',
                            title='판촉행사 및 할인율')
+            st.plotly_chart(fig, use_container_width=True)
+            
+        with tab4:
+            st.subheader("매출 예측")
+            
+            # Train Prophet model
+            model = Prophet(yearly_seasonality=True, 
+                          weekly_seasonality=True, 
+                          daily_seasonality=True)
+            model.fit(sales_prophet)
+            
+            # Create future dates for prediction
+            future_dates = model.make_future_dataframe(periods=30)
+            forecast = model.predict(future_dates)
+            
+            # Plot forecast
+            fig = go.Figure()
+            
+            # Actual values
+            fig.add_trace(go.Scatter(x=sales_prophet['ds'], 
+                                   y=sales_prophet['y'],
+                                   name='실제 매출',
+                                   mode='markers+lines'))
+            
+            # Predicted values
+            fig.add_trace(go.Scatter(x=forecast['ds'],
+                                   y=forecast['yhat'],
+                                   name='예측 매출',
+                                   mode='lines',
+                                   line=dict(dash='dash')))
+            
+            # Confidence interval
+            fig.add_trace(go.Scatter(x=forecast['ds'],
+                                   y=forecast['yhat_upper'],
+                                   fill=None,
+                                   mode='lines',
+                                   line=dict(width=0),
+                                   showlegend=False))
+            
+            fig.add_trace(go.Scatter(x=forecast['ds'],
+                                   y=forecast['yhat_lower'],
+                                   fill='tonexty',
+                                   mode='lines',
+                                   line=dict(width=0),
+                                   name='95% 신뢰구간'))
+            
+            fig.update_layout(title='매출 예측 (향후 30일)',
+                            xaxis_title='날짜',
+                            yaxis_title='매출액',
+                            hovermode='x unified')
+            
             st.plotly_chart(fig, use_container_width=True)
 
         st.session_state.data_loaded = True

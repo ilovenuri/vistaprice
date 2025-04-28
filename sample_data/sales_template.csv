@@ -1,0 +1,5 @@
+date,product_name,brand_name,quantity,sales_amount,discount_amount,net_sales
+2024-01-01,Product A,Brand X,10,100000,5000,95000
+2024-01-01,Product B,Brand Y,5,75000,3000,72000
+2024-01-02,Product C,Brand X,8,80000,4000,76000
+2024-01-02,Product D,Brand Z,15,150000,7500,142500 

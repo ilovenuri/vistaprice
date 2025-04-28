@@ -67,21 +67,21 @@ col1, col2, col3 = st.columns(3)
 with col1:
     st.markdown('<div class="upload-section">', unsafe_allow_html=True)
     st.markdown('<p class="section-title">SALES DATA</p>', unsafe_allow_html=True)
-    sales_file = st.file_uploader("Upload Sales Data", type=['csv'], key='sales')
+    sales_file = st.file_uploader("Upload Sales Data", type=['csv'], key='sales_upload')
     st.markdown(get_csv_download_link(sample_sales_data, "sales_template.csv"), unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col2:
     st.markdown('<div class="upload-section">', unsafe_allow_html=True)
     st.markdown('<p class="section-title">MARKETING DATA</p>', unsafe_allow_html=True)
-    marketing_file = st.file_uploader("Upload Marketing Data", type=['csv'], key='marketing')
+    marketing_file = st.file_uploader("Upload Marketing Data", type=['csv'], key='marketing_upload')
     st.markdown(get_csv_download_link(sample_marketing_data, "marketing_template.csv"), unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col3:
     st.markdown('<div class="upload-section">', unsafe_allow_html=True)
     st.markdown('<p class="section-title">PROMOTION DATA</p>', unsafe_allow_html=True)
-    promotion_file = st.file_uploader("Upload Promotion Data", type=['csv'], key='promotion')
+    promotion_file = st.file_uploader("Upload Promotion Data", type=['csv'], key='promotion_upload')
     st.markdown(get_csv_download_link(sample_promotion_data, "promotion_template.csv"), unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 

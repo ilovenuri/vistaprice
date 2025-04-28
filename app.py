@@ -149,10 +149,19 @@ if sales_file and marketing_file and promotion_file:
         def read_csv_auto_encoding(file):
             file.seek(0)
             try:
-                return pd.read_csv(file, encoding='utf-8')
+                content = file.read()
+                if isinstance(content, bytes):
+                    return pd.read_csv(io.StringIO(content.decode('utf-8')))
+                else:
+                    # Already string (StringIO)
+                    return pd.read_csv(io.StringIO(content))
             except UnicodeDecodeError:
                 file.seek(0)
-                return pd.read_csv(file, encoding='cp949')
+                content = file.read()
+                if isinstance(content, bytes):
+                    return pd.read_csv(io.StringIO(content.decode('cp949')))
+                else:
+                    return pd.read_csv(io.StringIO(content))
         
         sales_df = read_csv_auto_encoding(sales_file)
         marketing_df = read_csv_auto_encoding(marketing_file)

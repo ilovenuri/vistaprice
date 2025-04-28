@@ -145,10 +145,17 @@ with col3:
 # Data Processing
 if sales_file and marketing_file and promotion_file:
     try:
-        # Read the uploaded files
-        sales_df = pd.read_csv(sales_file)
-        marketing_df = pd.read_csv(marketing_file)
-        promotion_df = pd.read_csv(promotion_file)
+        # Read the uploaded files with automatic encoding detection
+        def read_csv_auto_encoding(file):
+            try:
+                return pd.read_csv(file, encoding='utf-8')
+            except UnicodeDecodeError:
+                file.seek(0)
+                return pd.read_csv(file, encoding='cp949')
+        
+        sales_df = read_csv_auto_encoding(sales_file)
+        marketing_df = read_csv_auto_encoding(marketing_file)
+        promotion_df = read_csv_auto_encoding(promotion_file)
         
         # Debug: Print column names
         st.write("Sales DataFrame columns:", sales_df.columns.tolist())

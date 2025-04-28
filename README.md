@@ -2,6 +2,12 @@
 
 시계열 데이터를 기반으로 미래 판매량을 예측하는 Streamlit 웹 애플리케이션입니다.
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://vistaprice.streamlit.app)
+
+## 데모
+
+웹 브라우저에서 바로 사용해보실 수 있습니다: [Streamlit Cloud Demo](https://vistaprice.streamlit.app)
+
 ## 주요 기능
 
 - CSV 파일 업로드를 통한 데이터 분석
@@ -15,7 +21,7 @@
 
 1. 저장소 클론
 ```bash
-git clone [repository-url]
+git clone https://github.com/ilovenuri/vistaprice.git
 cd sales_forecast_app
 ```
 

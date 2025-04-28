@@ -147,6 +147,7 @@ if sales_file and marketing_file and promotion_file:
     try:
         # Read the uploaded files with automatic encoding detection
         def read_csv_auto_encoding(file):
+            file.seek(0)
             try:
                 return pd.read_csv(file, encoding='utf-8')
             except UnicodeDecodeError:

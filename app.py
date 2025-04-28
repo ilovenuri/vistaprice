@@ -10,6 +10,7 @@ from prophet import Prophet
 import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy import stats
+import chardet
 
 # Page config
 st.set_page_config(page_title="마케팅 효과 분석 및 판매량 예측 앱", layout="wide")
@@ -148,15 +149,17 @@ if sales_file and marketing_file and promotion_file:
         # Read the uploaded files with automatic encoding detection
         def read_csv_auto_encoding(file):
             file.seek(0)
+            raw = file.read(10000)
+            if isinstance(raw, str):
+                raw = raw.encode('utf-8')
+            result = chardet.detect(raw)
+            encoding = result['encoding'] if result['encoding'] else 'utf-8'
+            file.seek(0)
             content = file.read()
             if isinstance(content, str):
                 content = content.encode('utf-8')
-            try:
-                decoded = content.decode('utf-8')
-                return pd.read_csv(io.StringIO(decoded))
-            except UnicodeDecodeError:
-                decoded = content.decode('cp949')
-                return pd.read_csv(io.StringIO(decoded))
+            decoded = content.decode(encoding)
+            return pd.read_csv(io.StringIO(decoded))
         
         sales_df = read_csv_auto_encoding(sales_file)
         marketing_df = read_csv_auto_encoding(marketing_file)

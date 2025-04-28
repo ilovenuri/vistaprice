@@ -46,7 +46,7 @@ st.markdown("""
         text-align: center;
     }
     .upload-section {
-        background-color: rgba(49, 51, 63, 0.2);
+        background-color: transparent;
         padding: 1.5rem;
         border-radius: 10px;
         margin-bottom: 1rem;
@@ -76,6 +76,22 @@ st.markdown("""
     }
     .stFileUploader {
         padding: 1rem 0;
+    }
+    /* Remove black background from file uploader */
+    .uploadedFile {
+        background-color: transparent !important;
+    }
+    .stFileUploader > div {
+        background-color: transparent !important;
+    }
+    .stFileUploader > button {
+        background-color: rgba(49, 51, 63, 0.2) !important;
+        border: 1px solid rgba(49, 51, 63, 0.2) !important;
+    }
+    /* Style the drag and drop area */
+    .stFileUploader > div[data-testid="stFileUploadDropzone"] {
+        background-color: rgba(49, 51, 63, 0.1) !important;
+        border: 1px dashed rgba(49, 51, 63, 0.2) !important;
     }
     </style>
 """, unsafe_allow_html=True)

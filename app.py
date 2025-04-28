@@ -17,7 +17,7 @@ st.set_page_config(page_title="마케팅 효과 분석 및 판매량 예측 앱"
 def get_csv_download_link(csv_string, filename):
     """Generates a link to download the CSV file"""
     b64 = base64.b64encode(csv_string.encode()).decode()
-    href = f'<a href="data:file/csv;base64,{b64}" download="{filename}" class="download-link">샘플 데이터 다운로드</a>'
+    href = f'<a href="data:file/csv;base64,{b64}" download="{filename}" class="download-link">샘플 다운로드</a>'
     return href
 
 # Sample data for CSV templates
@@ -46,10 +46,11 @@ st.markdown("""
         text-align: center;
     }
     .upload-section {
-        background-color: #1a1a1a;
+        background-color: rgba(49, 51, 63, 0.2);
         padding: 1.5rem;
         border-radius: 10px;
         margin-bottom: 1rem;
+        border: 1px solid rgba(49, 51, 63, 0.2);
     }
     .section-title {
         color: #ffffff;
@@ -73,6 +74,9 @@ st.markdown("""
         color: #45a049;
         text-decoration: underline;
     }
+    .stFileUploader {
+        padding: 1rem 0;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -92,7 +96,7 @@ col1, col2, col3 = st.columns(3)
 # Sales data upload
 with col1:
     st.markdown('<div class="upload-section">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">매출 데이터</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">매출</div>', unsafe_allow_html=True)
     st.markdown('<div class="upload-text">CSV 파일을 업로드하세요</div>', unsafe_allow_html=True)
     sales_file = st.file_uploader("", type=['csv'], key='sales_uploader')
     st.markdown(get_csv_download_link(sample_sales_data, "sales_template.csv"), unsafe_allow_html=True)
@@ -101,7 +105,7 @@ with col1:
 # Marketing data upload
 with col2:
     st.markdown('<div class="upload-section">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">마케팅 비용 데이터</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">마케팅 비용</div>', unsafe_allow_html=True)
     st.markdown('<div class="upload-text">CSV 파일을 업로드하세요</div>', unsafe_allow_html=True)
     marketing_file = st.file_uploader("", type=['csv'], key='marketing_uploader')
     st.markdown(get_csv_download_link(sample_marketing_data, "marketing_template.csv"), unsafe_allow_html=True)
@@ -110,7 +114,7 @@ with col2:
 # Promotion data upload
 with col3:
     st.markdown('<div class="upload-section">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">판촉행사 데이터</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">판촉행사</div>', unsafe_allow_html=True)
     st.markdown('<div class="upload-text">CSV 파일을 업로드하세요</div>', unsafe_allow_html=True)
     promotion_file = st.file_uploader("", type=['csv'], key='promotion_uploader')
     st.markdown(get_csv_download_link(sample_promotion_data, "promotion_template.csv"), unsafe_allow_html=True)
@@ -130,10 +134,10 @@ if sales_file and marketing_file and promotion_file:
                 df['date'] = pd.to_datetime(df['date'])
         
         # Display the data in tabs
-        tab1, tab2, tab3 = st.tabs(["매출 데이터", "마케팅 데이터", "판촉행사 데이터"])
+        tab1, tab2, tab3 = st.tabs(["매출", "마케팅", "판촉행사"])
         
         with tab1:
-            st.subheader("매출 데이터")
+            st.subheader("매출")
             st.write(sales_df)
             
             # Sales trend visualization
@@ -142,7 +146,7 @@ if sales_file and marketing_file and promotion_file:
             st.plotly_chart(fig, use_container_width=True)
         
         with tab2:
-            st.subheader("마케팅 데이터")
+            st.subheader("마케팅")
             st.write(marketing_df)
             
             # Marketing cost by channel visualization
@@ -151,7 +155,7 @@ if sales_file and marketing_file and promotion_file:
             st.plotly_chart(fig, use_container_width=True)
         
         with tab3:
-            st.subheader("판촉행사 데이터")
+            st.subheader("판촉행사")
             st.write(promotion_df)
             
             # Promotion events visualization

@@ -127,15 +127,16 @@ if uploaded_file is not None:
         # Prophet 모델 학습
         st.subheader('2. 예측 모델 학습')
         model = Prophet(
-            growth='flat',  # 선형 성장 대신 평탄화된 성장 사용
+            growth='linear',  # 선형 성장 사용
             yearly_seasonality=True,
             weekly_seasonality=True,
             daily_seasonality=False,  # 일별 계절성 비활성화
-            changepoint_prior_scale=0.001,  # 변화점 민감도를 매우 낮게 설정
-            seasonality_prior_scale=0.1,    # 계절성 강도를 낮게 설정
-            changepoint_range=0.95,         # 변화점 범위
-            n_changepoints=15,              # 변화점 수를 줄임
-            interval_width=0.95             # 예측 구간을 95%로 설정
+            changepoint_prior_scale=0.05,  # 변화점 민감도 증가
+            seasonality_prior_scale=10.0,  # 계절성 강도 증가
+            changepoint_range=0.95,  # 변화점 범위
+            n_changepoints=25,  # 변화점 수 증가
+            interval_width=0.95,  # 예측 구간
+            seasonality_mode='multiplicative'  # 곱셈 계절성 사용
         )
         
         # 휴일 효과 추가
@@ -264,22 +265,28 @@ if uploaded_file is not None:
            - 장기적인 매출 변화 추이를 보여줍니다
            - 상승/하락/안정적인 추세를 파악할 수 있습니다
            - 특정 시점의 급격한 변화도 확인 가능합니다
+           - 실제 데이터의 변화를 더 잘 반영하도록 모델이 조정되었습니다
         
         2. **주간 계절성 (Weekly)**
            - 요일별 매출 패턴을 보여줍니다
            - 주말과 평일의 차이를 명확히 볼 수 있습니다
            - 가장 활발한 요일과 가장 부진한 요일을 파악할 수 있습니다
+           - 실제 요일별 패턴을 더 정확하게 반영하도록 조정되었습니다
         
         3. **연간 계절성 (Yearly)**
            - 연중 매출 패턴을 보여줍니다
            - 계절별 특성을 파악할 수 있습니다
            - 특정 시즌이나 이벤트의 영향을 확인할 수 있습니다
+           - 계절성 강도를 높여 실제 패턴을 더 잘 포착하도록 조정되었습니다
         
         이 분석을 통해:
         - 마케팅 전략 수립 시기 결정
         - 인력 배치 최적화
         - 재고 관리 계획 수립
         등의 인사이트를 얻을 수 있습니다.
+        
+        *참고: 모델이 실제 데이터의 패턴을 더 잘 반영하도록 조정되었습니다. 
+        특히 계절성 강도와 변화점 민감도를 높여 더 현실적인 예측을 제공합니다.*
         """)
         
     except Exception as e:

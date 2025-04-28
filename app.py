@@ -254,161 +254,31 @@ if uploaded_file is not None:
         fig_components = model.plot_components(forecast)
         st.pyplot(fig_components)
         
-        # 상관관계 분석
-        st.subheader('6. 상관관계 분석')
-        
-        # 분석할 수치형 컬럼 선택
-        numeric_cols = df_daily.select_dtypes(include=[np.number]).columns.tolist()
-        numeric_cols = [col for col in numeric_cols if col not in ['시간']]  # '시간' 컬럼 제외
-        
-        # 요일 더미 변수 추가
-        df_daily['요일'] = pd.to_datetime(df_daily['date']).dt.dayofweek
-        df_daily['주말'] = df_daily['요일'].isin([5, 6]).astype(int)  # 토,일 = 1, 평일 = 0
-        
-        # 공휴일 정보 추가
-        from datetime import datetime
-        import holidays
-        kr_holidays = holidays.KR()
-        df_daily['공휴일'] = df_daily['date'].apply(lambda x: 1 if x in kr_holidays else 0)
-        
-        # 시간대별 집계 추가
-        df_daily['아침(6-11시)'] = df['시간'].between(6, 11).astype(int).groupby(df['date'].dt.date).sum()
-        df_daily['점심(12-14시)'] = df['시간'].between(12, 14).astype(int).groupby(df['date'].dt.date).sum()
-        df_daily['저녁(17-21시)'] = df['시간'].between(17, 21).astype(int).groupby(df['date'].dt.date).sum()
-        df_daily['심야(22-5시)'] = ((df['시간'] >= 22) | (df['시간'] <= 5)).astype(int).groupby(df['date'].dt.date).sum()
-        
-        # 상관계수 히트맵
-        correlation_cols = ['결제금액', '결제자수', '결제수', '주말', '공휴일', 
-                          '아침(6-11시)', '점심(12-14시)', '저녁(17-21시)', '심야(22-5시)']
-        corr_matrix = df_daily[correlation_cols].corr()
-        
-        # Plotly를 사용한 히트맵 생성
-        fig_heatmap = go.Figure(data=go.Heatmap(
-            z=corr_matrix.values,
-            x=corr_matrix.columns,
-            y=corr_matrix.columns,
-            text=np.round(corr_matrix.values, 2),
-            texttemplate='%{text}',
-            textfont={"size": 10},
-            hoverongaps=False,
-            colorscale='RdBu',
-            zmid=0
-        ))
-        
-        fig_heatmap.update_layout(
-            title='지표 간 상관관계 히트맵',
-            width=800,
-            height=800
-        )
-        
-        st.plotly_chart(fig_heatmap)
-        
-        # 히트맵 분석 설명
+        # 계절성 분석 설명
         st.markdown("""
-        ### 히트맵 분석 결과
+        ### 계절성 분석 결과 설명
         
-        위 히트맵은 각 지표 간의 상관관계를 보여줍니다:
-        - **빨간색**: 양의 상관관계 (값이 1에 가까울수록 강한 양의 관계)
-        - **파란색**: 음의 상관관계 (값이 -1에 가까울수록 강한 음의 관계)
-        - **흰색**: 상관관계가 거의 없음 (값이 0에 가까움)
+        위 그래프는 세 가지 주요 계절성 패턴을 보여줍니다:
         
-        주요 특징:
-        - 대각선은 항상 1.0 (자기 자신과의 완벽한 상관관계)
-        - 대칭적인 패턴 (A와 B의 상관관계 = B와 A의 상관관계)
-        """)
+        1. **추세 (Trend)**
+           - 장기적인 매출 변화 추이를 보여줍니다
+           - 상승/하락/안정적인 추세를 파악할 수 있습니다
+           - 특정 시점의 급격한 변화도 확인 가능합니다
         
-        # 주요 상관관계 설명
-        st.subheader("주요 상관관계 분석")
-        target_correlations = corr_matrix[target_column].sort_values(ascending=False)
+        2. **주간 계절성 (Weekly)**
+           - 요일별 매출 패턴을 보여줍니다
+           - 주말과 평일의 차이를 명확히 볼 수 있습니다
+           - 가장 활발한 요일과 가장 부진한 요일을 파악할 수 있습니다
         
-        # 자기 자신을 제외한 상위 3개 상관관계 추출
-        top_correlations = target_correlations[target_correlations.index != target_column].head(3)
-        
-        st.write(f"**{selected_metric}**에 영향을 미치는 주요 요인:")
-        for idx, corr in top_correlations.items():
-            st.write(f"- {idx}: {corr:.2f}")
-            
-        # 상관관계 설명
-        st.markdown("""
-        ### 주요 상관관계 분석 결과
-        
-        위 결과는 선택한 지표(**{selected_metric}**)에 가장 큰 영향을 미치는 요인들을 보여줍니다:
-        
-        - 상관계수가 0.7 이상: 매우 강한 관계
-        - 상관계수가 0.4~0.7: 강한 관계
-        - 상관계수가 0.2~0.4: 중간 정도의 관계
-        - 상관계수가 0.2 미만: 약한 관계
-        
-        이 분석을 통해 어떤 요인이 매출에 가장 큰 영향을 미치는지 파악할 수 있습니다.
-        """)
-            
-        # 산점도 분석
-        st.subheader("상세 산점도 분석")
-        
-        # 상관관계가 가장 높은 변수와의 산점도
-        top_factor = top_correlations.index[0]
-        
-        fig_scatter = px.scatter(
-            df_daily,
-            x=top_factor,
-            y=target_column,
-            trendline="ols",
-            title=f"{selected_metric}와 {top_factor} 간의 관계"
-        )
-        
-        st.plotly_chart(fig_scatter)
-        
-        # 산점도 분석 설명
-        st.markdown(f"""
-        ### 산점도 분석 결과
-        
-        위 그래프는 **{selected_metric}**와 가장 강한 상관관계를 보이는 **{top_factor}**의 관계를 보여줍니다:
-        
-        - 각 점은 하루의 데이터를 나타냅니다
-        - 파란색 선은 선형 회귀선으로, 두 변수 간의 일반적인 관계를 보여줍니다
-        - 점들이 선에 가깝게 분포할수록 두 변수 간의 관계가 강합니다
-        - 점들이 넓게 분포할수록 두 변수 간의 관계가 약합니다
-        
-        이 분석을 통해 두 변수 간의 관계가 선형적인지, 그리고 어떤 방향으로 영향을 미치는지 파악할 수 있습니다.
-        """)
-        
-        # 시간대별 평균 매출 분석
-        st.subheader("시간대별 평균 분석")
-        
-        time_periods = ['아침(6-11시)', '점심(12-14시)', '저녁(17-21시)', '심야(22-5시)']
-        avg_by_period = df_daily[time_periods].mean()
-        
-        fig_time = go.Figure(data=[
-            go.Bar(
-                x=time_periods,
-                y=avg_by_period.values,
-                text=np.round(avg_by_period.values, 2),
-                textposition='auto',
-            )
-        ])
-        
-        fig_time.update_layout(
-            title=f"시간대별 평균 거래 비중",
-            xaxis_title="시간대",
-            yaxis_title="평균 거래 비중"
-        )
-        
-        st.plotly_chart(fig_time)
-        
-        # 시간대별 분석 설명
-        st.markdown("""
-        ### 시간대별 분석 결과
-        
-        위 그래프는 하루 중 각 시간대별 거래 비중을 보여줍니다:
-        
-        - 막대의 높이는 해당 시간대의 평균 거래 비중을 나타냅니다
-        - 숫자는 정확한 평균값을 보여줍니다
-        - 가장 높은 막대가 가장 활발한 거래가 이루어지는 시간대입니다
+        3. **연간 계절성 (Yearly)**
+           - 연중 매출 패턴을 보여줍니다
+           - 계절별 특성을 파악할 수 있습니다
+           - 특정 시즌이나 이벤트의 영향을 확인할 수 있습니다
         
         이 분석을 통해:
-        - 하루 중 가장 활발한 거래 시간대 파악
-        - 시간대별 마케팅 전략 수립
+        - 마케팅 전략 수립 시기 결정
         - 인력 배치 최적화
+        - 재고 관리 계획 수립
         등의 인사이트를 얻을 수 있습니다.
         """)
         

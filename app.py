@@ -13,12 +13,18 @@ st.title('판매량 예측 앱')
 
 # 파일 업로드 섹션
 st.header('1. 데이터 업로드')
-uploaded_file = st.file_uploader("CSV 파일을 업로드하세요", type=['csv'])
+uploaded_files = st.file_uploader("CSV 파일을 업로드하세요 (여러 파일 선택 가능)", type=['csv'], accept_multiple_files=True)
 
-if uploaded_file is not None:
+if uploaded_files:
     try:
-        # CSV 파일 읽기
-        df = pd.read_csv(uploaded_file)
+        # 모든 파일을 하나의 데이터프레임으로 병합
+        dfs = []
+        for uploaded_file in uploaded_files:
+            df = pd.read_csv(uploaded_file)
+            dfs.append(df)
+        
+        # 데이터프레임 병합
+        df = pd.concat(dfs, ignore_index=True)
         
         # 데이터 미리보기
         st.subheader('원본 데이터 미리보기')

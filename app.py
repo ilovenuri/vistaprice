@@ -144,9 +144,22 @@ if sales_file and marketing_file and promotion_file:
         marketing_df = pd.read_csv(marketing_file)
         promotion_df = pd.read_csv(promotion_file)
         
+        # Debug: Print column names
+        st.write("Sales DataFrame columns:", sales_df.columns.tolist())
+        st.write("Marketing DataFrame columns:", marketing_df.columns.tolist())
+        st.write("Promotion DataFrame columns:", promotion_df.columns.tolist())
+        
         # Convert date columns to datetime
         sales_df['판매일자'] = pd.to_datetime(sales_df['판매일자'])
+        
+        # Check if '판매일자' exists in marketing_df
+        if '판매일자' not in marketing_df.columns and 'date' in marketing_df.columns:
+            marketing_df = marketing_df.rename(columns={'date': '판매일자'})
         marketing_df['판매일자'] = pd.to_datetime(marketing_df['판매일자'])
+        
+        # Check if '판매일자' exists in promotion_df
+        if '판매일자' not in promotion_df.columns and 'date' in promotion_df.columns:
+            promotion_df = promotion_df.rename(columns={'date': '판매일자'})
         promotion_df['판매일자'] = pd.to_datetime(promotion_df['판매일자'])
         
         # Display the data in tabs

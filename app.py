@@ -21,27 +21,29 @@ def get_csv_download_link(csv_string, filename):
     href = f'<a href="data:file/csv;base64,{b64}" download="{filename}" class="download-link">샘플 다운로드</a>'
     return href
 
-def prepare_data_for_prophet(df, date_column, value_column):
-    """Prophet 모델을 위한 데이터 전처리"""
-    prophet_df = df.groupby(date_column)[value_column].sum().reset_index()
-    prophet_df.columns = ['ds', 'y']  # Prophet requires these specific column names
+def prepare_data_for_prophet(df):
+    # 일자별 실판매금액 합계로 Prophet용 데이터 생성
+    prophet_df = df.groupby('판매일자')['실판매금액'].sum().reset_index()
+    prophet_df.columns = ['ds', 'y']
     return prophet_df
 
 # Sample data for CSV templates
-sample_sales_data = """⇅,판매일자,매장구분,매장코드,매장명,영수증번호,기획구분,판매유형,팀구분,상품코드,상품명,칼라,칼라명,사이즈,사이즈명,자사바코드,판매구분,매출구분,TAG가,사전원가,평균원가,현재가,판매예정단가,판매수량,할인(T.실)%,에누리,마일리지,상품권,즉시환급,판매단가,판매금액,실판매금액,순판매(할인제외),순판매(할인포함),수수료,TAG가합,사전원가합,평균원가합,행사구분,마진(%),중간관리(%),고객코드,고객명,판매원,수취인/주문인,특이사항,특이사항2,영수증특이사항,MD Concept Story,원구매정보,입력시간,영수증번호.1
-1,2024-01-01,온라인,ST001,온라인스토어,RN001,일반,정상판매,여성의류,P001,블라우스,BK,블랙,S,Small,B001,판매,일반,50000,30000,32000,45000,45000,1,10,0,0,0,0,40500,40500,40500,45000,40500,2000,50000,30000,32000,일반,19.0,5.0,C001,홍길동,판매자1,수취인1,,,,,,,09:00,RN001
-1,2024-01-01,온라인,ST001,온라인스토어,RN002,일반,정상판매,여성의류,P002,스커트,NV,네이비,M,Medium,B002,판매,일반,60000,35000,37000,55000,55000,1,10,0,0,0,0,49500,49500,49500,55000,49500,2500,60000,35000,37000,일반,18.0,5.0,C002,김철수,판매자1,수취인2,,,,,,,10:30,RN002
-1,2024-01-01,온라인,ST001,온라인스토어,RN003,일반,정상판매,여성의류,P003,원피스,WH,화이트,L,Large,B003,판매,일반,80000,45000,47000,75000,75000,1,10,0,0,0,0,67500,67500,67500,75000,67500,3000,80000,45000,47000,일반,20.0,5.0,C003,이영희,판매자2,수취인3,,,,,,,14:15,RN003"""
+sample_sales_data = """판매일자,매장명,상품명,판매수량,실판매금액
+2024-01-01,온라인몰,블라우스,2,40500
+2024-01-01,오프라인점,스커트,1,49500
+2024-01-02,온라인몰,원피스,3,67500
+"""
 
-sample_marketing_data = """판매일자,url,impressions,clicks,click_rate,cost,vat_included_cost,avg_cpc,conversions,conversion_amount
-2024-01-01,https://smart.example.com/ad1,1000,50,5.0,50000,55000,1000,2,100000
-2024-01-02,https://smart.example.com/ad2,1500,75,5.0,75000,82500,1000,3,150000
-2024-01-03,https://smart.example.com/ad3,2000,100,5.0,100000,110000,1000,4,200000"""
+sample_marketing_data = """판매일자,키워드,매체이름,검색/콘텐츠매체,노출수,클릭수,클릭률(%),총비용(VAT포함,원),평균노출순위,전환수,전환율(%),전환매출액(원)
+2024-01-01,텀블러,네이버통합검색,검색,1000,50,5.0,50000,1.8,2,4.0,100000
+2024-01-01,텀블러,네이버쇼핑검색,쇼핑,800,30,3.75,30000,2.1,1,3.3,50000
+"""
 
-sample_promotion_data = """판매일자,promotion_event,event_type,discount_rate
-2024-01-01,New Year Discount,Discount,20
-2024-01-02,1+1 Event,Bundle,50
-2024-01-03,Brand Day,Brand,30"""
+sample_promotion_data = """판매일자,이벤트명,종류,할인율(%)
+2024-01-01,신년할인,할인,20
+2024-01-02,1+1이벤트,번들,50
+2024-01-03,브랜드데이,브랜드,30
+"""
 
 # Custom CSS
 st.markdown("""
@@ -137,7 +139,7 @@ with col2:
 # Promotion data upload
 with col3:
     st.markdown('<div class="upload-section">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">판촉행사</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">프로모션</div>', unsafe_allow_html=True)
     st.markdown('<div class="upload-text">CSV 파일을 업로드하세요</div>', unsafe_allow_html=True)
     promotion_file = st.file_uploader("", type=['csv'], key='promotion_uploader')
     st.markdown(get_csv_download_link(sample_promotion_data, "promotion_template.csv"), unsafe_allow_html=True)
@@ -186,55 +188,44 @@ if sales_file and marketing_file and promotion_file:
         
         # Convert date columns to datetime
         sales_df['판매일자'] = pd.to_datetime(sales_df['판매일자'])
-        
-        # Check if '판매일자' exists in marketing_df
-        if '판매일자' not in marketing_df.columns and 'date' in marketing_df.columns:
-            marketing_df = marketing_df.rename(columns={'date': '판매일자'})
         marketing_df['판매일자'] = pd.to_datetime(marketing_df['판매일자'])
-        
-        # Check if '판매일자' exists in promotion_df
-        if '판매일자' not in promotion_df.columns and 'date' in promotion_df.columns:
-            promotion_df = promotion_df.rename(columns={'date': '판매일자'})
         promotion_df['판매일자'] = pd.to_datetime(promotion_df['판매일자'])
         
-        # Prepare data for Prophet
-        sales_prophet = prepare_data_for_prophet(sales_df, '판매일자', '실판매금액')
-        
         # Display the data in tabs
-        tab1, tab2, tab3, tab4 = st.tabs(["매출", "마케팅", "판촉행사", "예측"])
+        tab1, tab2, tab3, tab4 = st.tabs(["매출", "마케팅", "프로모션", "예측"])
         
         with tab1:
-            st.subheader("매출")
+            st.subheader("매출 데이터")
             st.write(sales_df)
             
             # Sales trend visualization
-            fig = px.line(sales_df, x='판매일자', y='실판매금액', color='매장구분',
+            fig = px.line(sales_df, x='판매일자', y='실판매금액', color='매장명',
                          title='매장별 매출 추이')
             st.plotly_chart(fig, use_container_width=True)
         
         with tab2:
-            st.subheader("마케팅")
+            st.subheader("마케팅 데이터")
             st.write(marketing_df)
             
             # Marketing cost by channel visualization
-            fig = px.bar(marketing_df, x='판매일자', y='cost', color='url',
-                        title='채널별 마케팅 비용')
+            fig = px.bar(marketing_df, x='판매일자', y='총비용(VAT포함,원)', color='매체이름',
+                        title='매체별 마케팅 비용')
             st.plotly_chart(fig, use_container_width=True)
         
         with tab3:
-            st.subheader("판촉행사")
+            st.subheader("프로모션 데이터")
             st.write(promotion_df)
             
             # Promotion events visualization
-            fig = px.scatter(promotion_df, x='판매일자', y='discount_rate', 
-                           color='event_type', size='discount_rate',
-                           title='판촉행사 및 할인율')
+            fig = px.bar(promotion_df, x='판매일자', y='할인율(%)', color='이벤트명',
+                        title='이벤트별 할인율')
             st.plotly_chart(fig, use_container_width=True)
             
         with tab4:
             st.subheader("매출 예측")
             
             # Train Prophet model
+            sales_prophet = prepare_data_for_prophet(sales_df)
             model = Prophet(yearly_seasonality=True, 
                           weekly_seasonality=True, 
                           daily_seasonality=True)

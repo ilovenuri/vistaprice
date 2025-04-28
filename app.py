@@ -272,4 +272,123 @@ if sales_file and marketing_file and promotion_file:
 
     except Exception as e:
         st.error(f"데이터 처리 중 오류가 발생했습니다: {str(e)}")
-        st.info("CSV 파일이 샘플 템플릿 형식과 일치하는지 확인해주세요.") 
+        st.info("CSV 파일이 샘플 템플릿 형식과 일치하는지 확인해주세요.")
+
+        def clean_columns(df):
+            df.columns = (
+                df.columns
+                .str.replace('\ufeff', '', regex=True)  # BOM 제거
+                .str.replace(' ', '', regex=True)       # 일반 공백 제거
+                .str.replace('\xa0', '', regex=True)    # non-breaking space 제거
+                .str.strip()                            # 앞뒤 공백 제거
+            )
+            return df
+        
+        sales_df = clean_columns(sales_df)
+        marketing_df = clean_columns(marketing_df)
+        promotion_df = clean_columns(promotion_df)
+
+        # Debug: Print cleaned column names
+        st.write("Cleaned Sales DataFrame columns:", sales_df.columns.tolist())
+        st.write("Cleaned Marketing DataFrame columns:", marketing_df.columns.tolist())
+        st.write("Cleaned Promotion DataFrame columns:", promotion_df.columns.tolist())
+
+        # Convert date columns to datetime
+        sales_df['판매일자'] = pd.to_datetime(sales_df['판매일자'])
+        
+        # Check if '판매일자' exists in marketing_df
+        if '판매일자' not in marketing_df.columns and 'date' in marketing_df.columns:
+            marketing_df = marketing_df.rename(columns={'date': '판매일자'})
+        marketing_df['판매일자'] = pd.to_datetime(marketing_df['판매일자'])
+        
+        # Check if '판매일자' exists in promotion_df
+        if '판매일자' not in promotion_df.columns and 'date' in promotion_df.columns:
+            promotion_df = promotion_df.rename(columns={'date': '판매일자'})
+        promotion_df['판매일자'] = pd.to_datetime(promotion_df['판매일자'])
+        
+        # Prepare data for Prophet
+        sales_prophet = prepare_data_for_prophet(sales_df, '판매일자', '실판매금액')
+        
+        # Display the data in tabs
+        tab1, tab2, tab3, tab4 = st.tabs(["매출", "마케팅", "판촉행사", "예측"])
+        
+        with tab1:
+            st.subheader("매출")
+            st.write(sales_df)
+            
+            # Sales trend visualization
+            fig = px.line(sales_df, x='판매일자', y='실판매금액', color='매장구분',
+                         title='매장별 매출 추이')
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with tab2:
+            st.subheader("마케팅")
+            st.write(marketing_df)
+            
+            # Marketing cost by channel visualization
+            fig = px.bar(marketing_df, x='판매일자', y='cost', color='url',
+                        title='채널별 마케팅 비용')
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with tab3:
+            st.subheader("판촉행사")
+            st.write(promotion_df)
+            
+            # Promotion events visualization
+            fig = px.scatter(promotion_df, x='판매일자', y='discount_rate', 
+                           color='event_type', size='discount_rate',
+                           title='판촉행사 및 할인율')
+            st.plotly_chart(fig, use_container_width=True)
+            
+        with tab4:
+            st.subheader("매출 예측")
+            
+            # Train Prophet model
+            model = Prophet(yearly_seasonality=True, 
+                          weekly_seasonality=True, 
+                          daily_seasonality=True)
+            model.fit(sales_prophet)
+            
+            # Create future dates for prediction
+            future_dates = model.make_future_dataframe(periods=30)
+            forecast = model.predict(future_dates)
+            
+            # Plot forecast
+            fig = go.Figure()
+            
+            # Actual values
+            fig.add_trace(go.Scatter(x=sales_prophet['ds'], 
+                                   y=sales_prophet['y'],
+                                   name='실제 매출',
+                                   mode='markers+lines'))
+            
+            # Predicted values
+            fig.add_trace(go.Scatter(x=forecast['ds'],
+                                   y=forecast['yhat'],
+                                   name='예측 매출',
+                                   mode='lines',
+                                   line=dict(dash='dash')))
+            
+            # Confidence interval
+            fig.add_trace(go.Scatter(x=forecast['ds'],
+                                   y=forecast['yhat_upper'],
+                                   fill=None,
+                                   mode='lines',
+                                   line=dict(width=0),
+                                   showlegend=False))
+            
+            fig.add_trace(go.Scatter(x=forecast['ds'],
+                                   y=forecast['yhat_lower'],
+                                   fill='tonexty',
+                                   mode='lines',
+                                   line=dict(width=0),
+                                   name='95% 신뢰구간'))
+            
+            fig.update_layout(title='매출 예측 (향후 30일)',
+                            xaxis_title='날짜',
+                            yaxis_title='매출액',
+                            hovermode='x unified')
+            
+            st.plotly_chart(fig, use_container_width=True)
+
+        st.session_state.data_loaded = True 

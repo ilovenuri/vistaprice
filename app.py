@@ -1,13 +1,137 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from prophet import Prophet
-import plotly.graph_objects as go
+import base64
+import io
+from datetime import datetime
 import plotly.express as px
+import plotly.graph_objects as go
+from prophet import Prophet
 import seaborn as sns
 import matplotlib.pyplot as plt
-from datetime import datetime, timedelta
 from scipy import stats
+
+def get_csv_download_link(csv_string, filename):
+    """Generates a link to download the CSV file"""
+    b64 = base64.b64encode(csv_string.encode()).decode()
+    href = f'<a href="data:file/csv;base64,{b64}" download="{filename}">Download Sample {filename}</a>'
+    return href
+
+# Sample data for CSV templates
+sample_sales_data = """date,brand,sales
+2024-01-01,BrandA,100
+2024-01-02,BrandA,150
+2024-01-03,BrandA,120"""
+
+sample_marketing_data = """date,marketing_cost,marketing_channel
+2024-01-01,1000000,TV
+2024-01-02,500000,SNS
+2024-01-03,800000,Display"""
+
+sample_promotion_data = """date,promotion_event,event_type,discount_rate
+2024-01-01,New Year Discount,Discount,20
+2024-01-02,1+1 Event,Bundle,50
+2024-01-03,Brand Day,Brand,30"""
+
+# Page config
+st.set_page_config(page_title="마케팅 효과 분석 및 판매량 예측 앱", layout="wide")
+
+# Custom CSS for better layout
+st.markdown("""
+    <style>
+    .upload-section {
+        padding: 20px;
+        margin: 10px 0;
+        border-radius: 5px;
+        background-color: #f0f2f6;
+    }
+    .section-title {
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #0e1117;
+    }
+    .stApp {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# Title
+st.title("마케팅 효과 분석 및 판매량 예측 앱")
+
+# Create three columns for the file uploaders
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.markdown('<div class="upload-section">', unsafe_allow_html=True)
+    st.markdown('<p class="section-title">SALES DATA</p>', unsafe_allow_html=True)
+    sales_file = st.file_uploader("Upload Sales Data", type=['csv'], key='sales')
+    st.markdown(get_csv_download_link(sample_sales_data, "sales_template.csv"), unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with col2:
+    st.markdown('<div class="upload-section">', unsafe_allow_html=True)
+    st.markdown('<p class="section-title">MARKETING DATA</p>', unsafe_allow_html=True)
+    marketing_file = st.file_uploader("Upload Marketing Data", type=['csv'], key='marketing')
+    st.markdown(get_csv_download_link(sample_marketing_data, "marketing_template.csv"), unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with col3:
+    st.markdown('<div class="upload-section">', unsafe_allow_html=True)
+    st.markdown('<p class="section-title">PROMOTION DATA</p>', unsafe_allow_html=True)
+    promotion_file = st.file_uploader("Upload Promotion Data", type=['csv'], key='promotion')
+    st.markdown(get_csv_download_link(sample_promotion_data, "promotion_template.csv"), unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# Data Processing
+if sales_file and marketing_file and promotion_file:
+    try:
+        # Read the uploaded files
+        sales_df = pd.read_csv(sales_file)
+        marketing_df = pd.read_csv(marketing_file)
+        promotion_df = pd.read_csv(promotion_file)
+        
+        # Convert date columns to datetime
+        for df in [sales_df, marketing_df, promotion_df]:
+            if 'date' in df.columns:
+                df['date'] = pd.to_datetime(df['date'])
+        
+        # Display the data in tabs
+        tab1, tab2, tab3 = st.tabs(["Sales Data", "Marketing Data", "Promotion Data"])
+        
+        with tab1:
+            st.subheader("Sales Data")
+            st.write(sales_df)
+            
+            # Sales trend visualization
+            fig = px.line(sales_df, x='date', y='sales', color='brand',
+                         title='Sales Trend by Brand')
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with tab2:
+            st.subheader("Marketing Data")
+            st.write(marketing_df)
+            
+            # Marketing cost by channel visualization
+            fig = px.bar(marketing_df, x='date', y='marketing_cost', color='marketing_channel',
+                        title='Marketing Cost by Channel')
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with tab3:
+            st.subheader("Promotion Data")
+            st.write(promotion_df)
+            
+            # Promotion events visualization
+            fig = px.scatter(promotion_df, x='date', y='discount_rate', 
+                           color='event_type', size='discount_rate',
+                           title='Promotion Events and Discount Rates')
+            st.plotly_chart(fig, use_container_width=True)
+
+    except Exception as e:
+        st.error(f"Error processing data: {str(e)}")
+        st.info("Please make sure your CSV files match the template format.")
 
 # 앱 제목 설정
 st.title('마케팅 효과 분석 및 판매량 예측 앱')

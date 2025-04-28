@@ -17,14 +17,6 @@ if uploaded_file is not None:
         # CSV 파일 읽기
         df = pd.read_csv(uploaded_file)
         
-        # 컬럼명 매핑 정의
-        expected_columns = [
-            '날짜', '요일', '시간대', '결제자수', '결제수', 
-            '모바일웹(결제건수)', '결제금액', '모바일웹(결제금액)', 
-            '결제취소금액', '결제건수상세', '결제취소건수', 
-            '환불건수', '환불금액', '환불비율(결제건수)', '환불비율(결제금액건수)'
-        ]
-        
         # 데이터 미리보기
         st.subheader('원본 데이터 미리보기')
         st.write(df.head())
@@ -38,11 +30,17 @@ if uploaded_file is not None:
                 return float(x.replace(',', '').split()[0])
             return float(x)
         
+        # 필수 컬럼 확인
+        required_columns = ['날짜', '시간대', '결제금액', '결제자수', '결제수']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            st.error(f"필수 컬럼이 누락되었습니다: {', '.join(missing_columns)}")
+            st.stop()
+        
         # 숫자 컬럼들의 데이터 정제
-        numeric_columns = ['결제금액', '결제자수', '결제수', '모바일웹(결제건수)', '모바일웹(결제금액)']
+        numeric_columns = ['결제금액', '결제자수', '결제수']
         for col in numeric_columns:
-            if col in df.columns:
-                df[col] = df[col].apply(clean_numeric)
+            df[col] = df[col].apply(clean_numeric)
         
         # 데이터 전처리
         # 시간대에서 시간만 추출 (예: "11시" -> "11")
@@ -53,10 +51,20 @@ if uploaded_file is not None:
         
         # 분석에 사용할 지표 선택을 위한 사이드바 추가
         st.sidebar.header('분석 설정')
-        target_column = st.sidebar.selectbox(
+        
+        # 분석 가능한 지표 매핑
+        metric_mapping = {
+            '결제 금액': '결제금액',
+            '결제자 수': '결제자수',
+            '결제 건수': '결제수'
+        }
+        
+        selected_metric = st.sidebar.selectbox(
             '예측할 지표를 선택하세요',
-            numeric_columns
+            list(metric_mapping.keys())
         )
+        
+        target_column = metric_mapping[selected_metric]
         
         # 선택된 지표로 일별 집계 및 이동평균 계산
         df_daily = df.groupby(df['date'].dt.date).agg({
@@ -213,9 +221,9 @@ if uploaded_file is not None:
                      annotation_text=f"전체 평균: {mean_value:,.0f}")
         
         fig.update_layout(
-            title=f'{target_column} 예측 결과',
+            title=f'{selected_metric} 예측 결과',
             xaxis_title='날짜',
-            yaxis_title=target_column,
+            yaxis_title=selected_metric,
             hovermode='x unified'
         )
         

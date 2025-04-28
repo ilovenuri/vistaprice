@@ -191,6 +191,9 @@ if sales_file and marketing_file and promotion_file:
         marketing_df['date'] = pd.to_datetime(marketing_df['date'])
         promotion_df['date'] = pd.to_datetime(promotion_df['date'])
         
+        # sales_amount에서 쉼표 제거 및 숫자형 변환
+        sales_df['sales_amount'] = sales_df['sales_amount'].astype(str).str.replace(',', '').astype(float)
+        
         # Display the data in tabs
         tab1, tab2, tab3, tab4 = st.tabs(["Sales", "Marketing", "Promotion", "Forecast"])
         

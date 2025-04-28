@@ -26,12 +26,12 @@ sample_sales_data = """⇅,판매일자,매장구분,매장코드,매장명,영�
 1,2024-01-01,온라인,ST001,온라인스토어,RN002,일반,정상판매,여성의류,P002,스커트,NV,네이비,M,Medium,B002,판매,일반,60000,35000,37000,55000,55000,1,10,0,0,0,0,49500,49500,49500,55000,49500,2500,60000,35000,37000,일반,18.0,5.0,C002,김철수,판매자1,수취인2,,,,,,,10:30,RN002
 1,2024-01-01,온라인,ST001,온라인스토어,RN003,일반,정상판매,여성의류,P003,원피스,WH,화이트,L,Large,B003,판매,일반,80000,45000,47000,75000,75000,1,10,0,0,0,0,67500,67500,67500,75000,67500,3000,80000,45000,47000,일반,20.0,5.0,C003,이영희,판매자2,수취인3,,,,,,,14:15,RN003"""
 
-sample_marketing_data = """date,url,impressions,clicks,click_rate,cost,vat_included_cost,avg_cpc,conversions,conversion_amount
+sample_marketing_data = """판매일자,url,impressions,clicks,click_rate,cost,vat_included_cost,avg_cpc,conversions,conversion_amount
 2024-01-01,https://smart.example.com/ad1,1000,50,5.0,50000,55000,1000,2,100000
 2024-01-02,https://smart.example.com/ad2,1500,75,5.0,75000,82500,1000,3,150000
 2024-01-03,https://smart.example.com/ad3,2000,100,5.0,100000,110000,1000,4,200000"""
 
-sample_promotion_data = """date,promotion_event,event_type,discount_rate
+sample_promotion_data = """판매일자,promotion_event,event_type,discount_rate
 2024-01-01,New Year Discount,Discount,20
 2024-01-02,1+1 Event,Bundle,50
 2024-01-03,Brand Day,Brand,30"""
@@ -146,10 +146,8 @@ if sales_file and marketing_file and promotion_file:
         
         # Convert date columns to datetime
         sales_df['판매일자'] = pd.to_datetime(sales_df['판매일자'])
-        if 'date' in marketing_df.columns:
-            marketing_df['date'] = pd.to_datetime(marketing_df['date'])
-        if 'date' in promotion_df.columns:
-            promotion_df['date'] = pd.to_datetime(promotion_df['date'])
+        marketing_df['판매일자'] = pd.to_datetime(marketing_df['판매일자'])
+        promotion_df['판매일자'] = pd.to_datetime(promotion_df['판매일자'])
         
         # Display the data in tabs
         tab1, tab2, tab3 = st.tabs(["매출", "마케팅", "판촉행사"])
@@ -168,7 +166,7 @@ if sales_file and marketing_file and promotion_file:
             st.write(marketing_df)
             
             # Marketing cost by channel visualization
-            fig = px.bar(marketing_df, x='date', y='marketing_cost', color='marketing_channel',
+            fig = px.bar(marketing_df, x='판매일자', y='cost', color='url',
                         title='채널별 마케팅 비용')
             st.plotly_chart(fig, use_container_width=True)
         
@@ -177,7 +175,7 @@ if sales_file and marketing_file and promotion_file:
             st.write(promotion_df)
             
             # Promotion events visualization
-            fig = px.scatter(promotion_df, x='date', y='discount_rate', 
+            fig = px.scatter(promotion_df, x='판매일자', y='discount_rate', 
                            color='event_type', size='discount_rate',
                            title='판촉행사 및 할인율')
             st.plotly_chart(fig, use_container_width=True)

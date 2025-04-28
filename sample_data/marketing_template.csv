@@ -1,4 +1,4 @@
-날짜,마케팅비용,마케팅채널
-2024-01-01,500000,SNS광고
-2024-01-02,300000,검색광고
-2024-01-03,700000,디스플레이광고 
+date,url,impressions,clicks,click_rate,cost,vat_included_cost,avg_cpc,conversions,conversion_amount
+2024-01-01,https://smart.example.com/ad1,1000,50,5.0,50000,55000,1000,2,100000
+2024-01-02,https://smart.example.com/ad2,1500,75,5.0,75000,82500,1000,3,150000
+2024-01-03,https://smart.example.com/ad3,2000,100,5.0,100000,110000,1000,4,200000 

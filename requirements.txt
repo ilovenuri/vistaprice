@@ -1,5 +1,9 @@
 streamlit==1.32.0
 pandas==2.2.0
+numpy
 prophet==1.1.5
 plotly==5.18.0
-holidays==0.43
+seaborn
+matplotlib
+holidays==0.43ㅗ
+statsmodels

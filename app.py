@@ -145,9 +145,11 @@ if sales_file and marketing_file and promotion_file:
         promotion_df = pd.read_csv(promotion_file)
         
         # Convert date columns to datetime
-        for df in [sales_df, marketing_df, promotion_df]:
-            if 'date' in df.columns:
-                df['date'] = pd.to_datetime(df['date'])
+        sales_df['판매일자'] = pd.to_datetime(sales_df['판매일자'])
+        if 'date' in marketing_df.columns:
+            marketing_df['date'] = pd.to_datetime(marketing_df['date'])
+        if 'date' in promotion_df.columns:
+            promotion_df['date'] = pd.to_datetime(promotion_df['date'])
         
         # Display the data in tabs
         tab1, tab2, tab3 = st.tabs(["매출", "마케팅", "판촉행사"])
@@ -157,8 +159,8 @@ if sales_file and marketing_file and promotion_file:
             st.write(sales_df)
             
             # Sales trend visualization
-            fig = px.line(sales_df, x='date', y='sales', color='brand',
-                         title='브랜드별 매출 추이')
+            fig = px.line(sales_df, x='판매일자', y='실판매금액', color='매장구분',
+                         title='매장별 매출 추이')
             st.plotly_chart(fig, use_container_width=True)
         
         with tab2:

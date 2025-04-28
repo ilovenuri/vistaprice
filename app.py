@@ -146,7 +146,6 @@ with col3:
 # Data Processing
 if sales_file and marketing_file and promotion_file:
     try:
-        # Read the uploaded files with automatic encoding detection
         def read_csv_auto_encoding(file):
             file.seek(0)
             raw = file.read(10000)
@@ -160,15 +159,30 @@ if sales_file and marketing_file and promotion_file:
                 content = content.encode('utf-8')
             decoded = content.decode(encoding)
             return pd.read_csv(io.StringIO(decoded))
-        
+
+        # Read and clean files before any further processing
         sales_df = read_csv_auto_encoding(sales_file)
         marketing_df = read_csv_auto_encoding(marketing_file)
         promotion_df = read_csv_auto_encoding(promotion_file)
-        
-        # Debug: Print column names
-        st.write("Sales DataFrame columns:", sales_df.columns.tolist())
-        st.write("Marketing DataFrame columns:", marketing_df.columns.tolist())
-        st.write("Promotion DataFrame columns:", promotion_df.columns.tolist())
+
+        def clean_columns(df):
+            df.columns = (
+                df.columns
+                .str.replace('\ufeff', '', regex=True)  # BOM 제거
+                .str.replace(' ', '', regex=True)       # 일반 공백 제거
+                .str.replace('\xa0', '', regex=True)    # non-breaking space 제거
+                .str.strip()                            # 앞뒤 공백 제거
+            )
+            return df
+
+        sales_df = clean_columns(sales_df)
+        marketing_df = clean_columns(marketing_df)
+        promotion_df = clean_columns(promotion_df)
+
+        # Debug: Print cleaned column names
+        st.write("Cleaned Sales DataFrame columns:", sales_df.columns.tolist())
+        st.write("Cleaned Marketing DataFrame columns:", marketing_df.columns.tolist())
+        st.write("Cleaned Promotion DataFrame columns:", promotion_df.columns.tolist())
         
         # Convert date columns to datetime
         sales_df['판매일자'] = pd.to_datetime(sales_df['판매일자'])
@@ -273,25 +287,6 @@ if sales_file and marketing_file and promotion_file:
     except Exception as e:
         st.error(f"데이터 처리 중 오류가 발생했습니다: {str(e)}")
         st.info("CSV 파일이 샘플 템플릿 형식과 일치하는지 확인해주세요.")
-
-        def clean_columns(df):
-            df.columns = (
-                df.columns
-                .str.replace('\ufeff', '', regex=True)  # BOM 제거
-                .str.replace(' ', '', regex=True)       # 일반 공백 제거
-                .str.replace('\xa0', '', regex=True)    # non-breaking space 제거
-                .str.strip()                            # 앞뒤 공백 제거
-            )
-            return df
-        
-        sales_df = clean_columns(sales_df)
-        marketing_df = clean_columns(marketing_df)
-        promotion_df = clean_columns(promotion_df)
-
-        # Debug: Print cleaned column names
-        st.write("Cleaned Sales DataFrame columns:", sales_df.columns.tolist())
-        st.write("Cleaned Marketing DataFrame columns:", marketing_df.columns.tolist())
-        st.write("Cleaned Promotion DataFrame columns:", promotion_df.columns.tolist())
 
         # Convert date columns to datetime
         sales_df['판매일자'] = pd.to_datetime(sales_df['판매일자'])

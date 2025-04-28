@@ -280,4 +280,4 @@ if sales_file and marketing_file and promotion_file:
 
     except Exception as e:
         st.error(f"Error processing data: {str(e)}")
-        st.info("Please make sure your CSV files match the sample template format.") 
+        st.info("Please make sure your CSV files match the sample template format.") # force update from desktop copy

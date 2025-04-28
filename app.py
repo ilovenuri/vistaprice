@@ -148,20 +148,15 @@ if sales_file and marketing_file and promotion_file:
         # Read the uploaded files with automatic encoding detection
         def read_csv_auto_encoding(file):
             file.seek(0)
+            content = file.read()
+            if isinstance(content, str):
+                content = content.encode('utf-8')
             try:
-                content = file.read()
-                if isinstance(content, bytes):
-                    return pd.read_csv(io.StringIO(content.decode('utf-8')))
-                else:
-                    # Already string (StringIO)
-                    return pd.read_csv(io.StringIO(content))
+                decoded = content.decode('utf-8')
+                return pd.read_csv(io.StringIO(decoded))
             except UnicodeDecodeError:
-                file.seek(0)
-                content = file.read()
-                if isinstance(content, bytes):
-                    return pd.read_csv(io.StringIO(content.decode('cp949')))
-                else:
-                    return pd.read_csv(io.StringIO(content))
+                decoded = content.decode('cp949')
+                return pd.read_csv(io.StringIO(decoded))
         
         sales_df = read_csv_auto_encoding(sales_file)
         marketing_df = read_csv_auto_encoding(marketing_file)

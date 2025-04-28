@@ -43,13 +43,13 @@ st.markdown("""
         padding: 20px;
         margin: 10px 0;
         border-radius: 5px;
-        background-color: #f0f2f6;
+        background-color: #1a1a1a;
     }
     .section-title {
         font-size: 20px;
         font-weight: bold;
         margin-bottom: 10px;
-        color: #0e1117;
+        color: #ffffff;
     }
     .stApp {
         max-width: 1200px;
@@ -57,6 +57,10 @@ st.markdown("""
     }
     .download-link {
         margin-top: 10px;
+        font-size: 14px;
+    }
+    .upload-text {
+        color: #ffffff;
         font-size: 14px;
     }
     </style>
@@ -72,23 +76,26 @@ st.header("1. 데이터 업로드")
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.subheader("매출 데이터")
-    sales_file = st.file_uploader("CSV 파일을 업로드하세요", type=['csv'], key='sales_data')
-    st.markdown('<div class="download-link">', unsafe_allow_html=True)
+    st.markdown('<div class="upload-section">', unsafe_allow_html=True)
+    st.markdown('<p class="section-title">매출 데이터</p>', unsafe_allow_html=True)
+    st.markdown('<p class="upload-text">CSV 파일을 업로드하세요</p>', unsafe_allow_html=True)
+    sales_file = st.file_uploader("", type=['csv'], key='sales_data')
     st.markdown(get_csv_download_link(sample_sales_data, "sales_template.csv"), unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col2:
-    st.subheader("마케팅 비용 데이터")
-    marketing_file = st.file_uploader("CSV 파일을 업로드하세요", type=['csv'], key='marketing_data')
-    st.markdown('<div class="download-link">', unsafe_allow_html=True)
+    st.markdown('<div class="upload-section">', unsafe_allow_html=True)
+    st.markdown('<p class="section-title">마케팅 비용 데이터</p>', unsafe_allow_html=True)
+    st.markdown('<p class="upload-text">CSV 파일을 업로드하세요</p>', unsafe_allow_html=True)
+    marketing_file = st.file_uploader("", type=['csv'], key='marketing_data')
     st.markdown(get_csv_download_link(sample_marketing_data, "marketing_template.csv"), unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col3:
-    st.subheader("판촉행사 데이터")
-    promotion_file = st.file_uploader("CSV 파일을 업로드하세요", type=['csv'], key='promotion_data')
-    st.markdown('<div class="download-link">', unsafe_allow_html=True)
+    st.markdown('<div class="upload-section">', unsafe_allow_html=True)
+    st.markdown('<p class="section-title">판촉행사 데이터</p>', unsafe_allow_html=True)
+    st.markdown('<p class="upload-text">CSV 파일을 업로드하세요</p>', unsafe_allow_html=True)
+    promotion_file = st.file_uploader("", type=['csv'], key='promotion_data')
     st.markdown(get_csv_download_link(sample_promotion_data, "promotion_template.csv"), unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 

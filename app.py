@@ -49,20 +49,108 @@ def prepare_data_for_prophet(df):
 
 # Sample data for CSV templates
 sample_sales_data = """date,store_name,product_name,quantity,sales_amount
-2024-01-01,OnlineStore,Blouse,2,40500
-2024-01-01,OfflineShop,Skirt,1,49500
-2024-01-02,OnlineStore,Dress,3,67500
+2023-04-01,OnlineStore,Blouse,3,65000
+2023-04-01,OfflineShop,Skirt,2,55000
+2023-04-15,OnlineStore,Dress,4,88000
+2023-04-15,OfflineShop,Blouse,3,62000
+2023-05-01,OnlineStore,Skirt,4,78000
+2023-05-01,OfflineShop,Dress,3,72000
+2023-05-15,OnlineStore,Blouse,5,95000
+2023-05-15,OfflineShop,Skirt,4,82000
+2023-06-01,OnlineStore,Dress,6,115000
+2023-06-01,OfflineShop,Blouse,4,85000
+2023-06-15,OnlineStore,Skirt,5,92000
+2023-06-15,OfflineShop,Dress,4,88000
+2023-07-01,OnlineStore,Blouse,7,125000
+2023-07-01,OfflineShop,Skirt,5,98000
+2023-07-15,OnlineStore,Dress,6,118000
+2023-07-15,OfflineShop,Blouse,5,102000
+2023-08-01,OnlineStore,Skirt,8,142000
+2023-08-01,OfflineShop,Dress,6,122000
+2023-08-15,OnlineStore,Blouse,7,132000
+2023-08-15,OfflineShop,Skirt,6,115000
+2023-09-01,OnlineStore,Dress,6,120000
+2023-09-01,OfflineShop,Blouse,5,105000
+2023-09-15,OnlineStore,Skirt,5,98000
+2023-09-15,OfflineShop,Dress,4,92000
+2023-10-01,OnlineStore,Blouse,6,118000
+2023-10-01,OfflineShop,Skirt,5,102000
+2023-10-15,OnlineStore,Dress,7,128000
+2023-10-15,OfflineShop,Blouse,6,115000
+2023-11-01,OnlineStore,Skirt,8,145000
+2023-11-01,OfflineShop,Dress,7,132000
+2023-11-15,OnlineStore,Blouse,9,162000
+2023-11-15,OfflineShop,Skirt,7,138000
+2023-12-01,OnlineStore,Dress,10,180000
+2023-12-01,OfflineShop,Blouse,8,155000
+2023-12-15,OnlineStore,Skirt,9,165000
+2023-12-15,OfflineShop,Dress,8,148000
+2024-01-01,OnlineStore,Blouse,8,145000
+2024-01-01,OfflineShop,Skirt,6,122000
+2024-01-15,OnlineStore,Dress,7,135000
+2024-01-15,OfflineShop,Blouse,6,118000
+2024-02-01,OnlineStore,Skirt,7,132000
+2024-02-01,OfflineShop,Dress,6,125000
+2024-02-15,OnlineStore,Blouse,8,148000
+2024-02-15,OfflineShop,Skirt,7,135000
+2024-03-01,OnlineStore,Dress,9,165000
+2024-03-01,OfflineShop,Blouse,7,142000
+2024-03-15,OnlineStore,Skirt,8,152000
+2024-03-15,OfflineShop,Dress,7,138000
 """
 
 sample_marketing_data = """date,keyword,channel_name,channel_type,impressions,clicks,ctr,total_cost,avg_rank,conversions,conversion_rate,conversion_sales
-2024-01-01,tumbler,NaverSearch,search,1000,50,5.0,50000,1.8,2,4.0,100000
-2024-01-01,tumbler,NaverShopping,shopping,800,30,3.75,30000,2.1,1,3.3,50000
+2023-04-01,tumbler,NaverSearch,search,1000,50,5.0,50000,2.0,2,4.0,100000
+2023-04-01,tumbler,NaverShopping,shopping,800,30,3.8,30000,2.2,1,3.3,50000
+2023-05-01,tumbler,NaverSearch,search,1200,60,5.0,52000,1.9,3,5.0,140000
+2023-05-01,tumbler,NaverShopping,shopping,900,35,3.9,32000,2.1,2,5.7,80000
+2023-06-01,tumbler,NaverSearch,search,1400,70,5.0,55000,1.8,4,5.7,180000
+2023-06-01,tumbler,NaverShopping,shopping,1000,40,4.0,35000,2.0,2,5.0,90000
+2023-07-01,tumbler,NaverSearch,search,1600,85,5.3,58000,1.7,5,5.9,220000
+2023-07-01,tumbler,NaverShopping,shopping,1200,48,4.0,38000,1.9,3,6.3,120000
+2023-08-01,tumbler,NaverSearch,search,1800,95,5.3,62000,1.6,6,6.3,260000
+2023-08-01,tumbler,NaverShopping,shopping,1400,58,4.1,42000,1.8,4,6.9,160000
+2023-09-01,tumbler,NaverSearch,search,1600,80,5.0,58000,1.7,5,6.3,220000
+2023-09-01,tumbler,NaverShopping,shopping,1200,45,3.8,38000,1.9,3,6.7,130000
+2023-10-01,tumbler,NaverSearch,search,1800,90,5.0,60000,1.6,6,6.7,250000
+2023-10-01,tumbler,NaverShopping,shopping,1400,55,3.9,40000,1.8,4,7.3,170000
+2023-11-01,tumbler,NaverSearch,search,2000,105,5.3,65000,1.5,7,6.7,290000
+2023-11-01,tumbler,NaverShopping,shopping,1600,65,4.1,45000,1.7,5,7.7,200000
+2023-12-01,tumbler,NaverSearch,search,2500,135,5.4,72000,1.4,9,6.7,380000
+2023-12-01,tumbler,NaverShopping,shopping,2000,85,4.3,52000,1.6,7,8.2,280000
+2024-01-01,tumbler,NaverSearch,search,2200,115,5.2,68000,1.5,8,7.0,320000
+2024-01-01,tumbler,NaverShopping,shopping,1800,72,4.0,48000,1.7,6,8.3,240000
+2024-02-01,tumbler,NaverSearch,search,2000,105,5.3,65000,1.6,7,6.7,290000
+2024-02-01,tumbler,NaverShopping,shopping,1600,65,4.1,45000,1.8,5,7.7,200000
+2024-03-01,tumbler,NaverSearch,search,2200,118,5.4,70000,1.5,8,6.8,330000
+2024-03-01,tumbler,NaverShopping,shopping,1800,75,4.2,50000,1.7,6,8.0,250000
 """
 
 sample_promotion_data = """date,event_name,event_type,discount_rate
-2024-01-01,NewYearSale,discount,20
-2024-01-02,1plus1Event,bundle,50
-2024-01-03,BrandDay,brand,30
+2023-04-01,SpringSale,seasonal,20
+2023-04-15,EarthDay,holiday,15
+2023-05-01,MayDay,holiday,20
+2023-05-15,FamilyDay,holiday,25
+2023-06-01,SummerSale,seasonal,30
+2023-06-15,MidYearSale,discount,25
+2023-07-01,VacationSale,seasonal,20
+2023-07-15,HotSummerDeal,discount,15
+2023-08-01,BackToSchool,seasonal,25
+2023-08-15,IndependenceDay,holiday,20
+2023-09-01,FallSale,seasonal,20
+2023-09-15,ChuseokSale,holiday,30
+2023-10-01,HarvestSale,seasonal,15
+2023-10-31,HalloweenSale,holiday,25
+2023-11-01,WinterSale,seasonal,20
+2023-11-15,BlackFriday,discount,35
+2023-12-01,YearEndSale,seasonal,30
+2023-12-25,ChristmasSale,holiday,25
+2024-01-01,NewYearSale,holiday,30
+2024-01-15,WinterSpecial,seasonal,25
+2024-02-01,LunarNewYear,holiday,30
+2024-02-14,ValentineDay,holiday,15
+2024-03-01,SpringSale,seasonal,20
+2024-03-15,WhiteDay,holiday,15
 """
 
 # Custom CSS
@@ -227,18 +315,47 @@ if sales_file and marketing_file and promotion_file:
 
             # Train Prophet model
             sales_prophet = prepare_data_for_prophet(sales_df)
-            model = Prophet(yearly_seasonality=True, 
-                          weekly_seasonality=True, 
-                          daily_seasonality=True)
+            
+            # 데이터 기간이 충분한지 확인
+            date_range = (sales_prophet['ds'].max() - sales_prophet['ds'].min()).days
+            
+            # Prophet 모델 파라미터 설정
+            if date_range < 30:  # 데이터가 30일 미만인 경우
+                model = Prophet(
+                    yearly_seasonality=False,  # 연간 계절성 비활성화
+                    weekly_seasonality=False,  # 주간 계절성 비활성화
+                    daily_seasonality=False,   # 일간 계절성 비활성화
+                    growth='linear',           # 선형 성장 가정
+                    changepoint_prior_scale=0.05  # 변화점 민감도 감소
+                )
+            else:  # 데이터가 충분한 경우
+                model = Prophet(
+                    yearly_seasonality=True if date_range > 365 else False,
+                    weekly_seasonality=True if date_range > 14 else False,
+                    daily_seasonality=True if date_range > 7 else False,
+                    growth='linear',
+                    changepoint_prior_scale=0.05
+                )
+            
             model.fit(sales_prophet)
-            # Create future dates for prediction
-            future_dates = model.make_future_dataframe(periods=30)
+            
+            # 예측 기간 설정 (데이터 기간에 따라 조정)
+            forecast_periods = min(30, max(7, date_range // 2))  # 데이터 기간의 절반까지만 예측
+            future_dates = model.make_future_dataframe(periods=forecast_periods)
             forecast = model.predict(future_dates)
 
-            # Clip negative predictions to zero
-            forecast['yhat'] = forecast['yhat'].clip(lower=0)
+            # Clip negative predictions to zero and set reasonable upper bound
+            max_historical = sales_prophet['y'].max()
+            forecast['yhat'] = forecast['yhat'].clip(lower=0, upper=max_historical * 2)  # 최대 과거 매출의 2배로 제한
             forecast['yhat_lower'] = forecast['yhat_lower'].clip(lower=0)
-            forecast['yhat_upper'] = forecast['yhat_upper'].clip(lower=0)
+            forecast['yhat_upper'] = forecast['yhat_upper'].clip(lower=0, upper=max_historical * 3)  # 신뢰구간은 3배로 제한
+
+            # Add warning for short data periods
+            if date_range < 30:
+                st.warning("""
+                ⚠️ 주의: 현재 데이터가 30일 미만입니다. 정확한 예측을 위해서는 최소 30일 이상의 데이터가 필요합니다.
+                현재 예측은 제한된 데이터를 기반으로 한 참고용 수치입니다.
+                """)
 
             # Calculate trend analysis
             current_avg = sales_prophet['y'].mean()

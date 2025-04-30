@@ -352,8 +352,8 @@ if sales_file and marketing_file and promotion_file:
             
             model.fit(sales_prophet)
             
-            # 예측 기간 설정 (데이터 기간에 따라 조정)
-            forecast_periods = min(forecast_days, max(7, date_range // 2))  # 데이터 기간의 절반까지만 예측
+            # 예측 기간 설정 (사용자가 선택한 기간 그대로 사용)
+            forecast_periods = forecast_days
             
             # 마지막 데이터 날짜부터 예측 시작
             last_date = sales_prophet['ds'].max()

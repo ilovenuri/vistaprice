@@ -354,8 +354,13 @@ if sales_file and marketing_file and promotion_file:
             
             # 예측 기간 설정 (데이터 기간에 따라 조정)
             forecast_periods = min(forecast_days, max(7, date_range // 2))  # 데이터 기간의 절반까지만 예측
-            future_dates = model.make_future_dataframe(periods=forecast_periods)
-            forecast = model.predict(future_dates)
+            
+            # 마지막 데이터 날짜부터 예측 시작
+            last_date = sales_prophet['ds'].max()
+            future_dates = pd.date_range(start=last_date, periods=forecast_periods + 1, freq='D')[1:]  # 다음날부터 예측
+            future_df = pd.DataFrame({'ds': future_dates})
+            
+            forecast = model.predict(future_df)
         
             # Clip negative predictions to zero and set reasonable upper bound
             max_historical = sales_prophet['y'].max()

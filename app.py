@@ -502,11 +502,19 @@ if sales_file and marketing_file and promotion_file:
             # Show forecast table (future only)
             forecast_table = forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail(forecast_days)
             forecast_table = forecast_table.rename(columns={
-                'ds': 'Date',
-                'yhat': 'Predicted Sales',
-                'yhat_lower': 'Lower Bound',
-                'yhat_upper': 'Upper Bound'
+                'ds': '날짜',
+                'yhat': '예상 매출',
+                'yhat_lower': '최소 예측값',
+                'yhat_upper': '최대 예측값'
             })
+            
+            # 날짜 형식 변경
+            forecast_table['날짜'] = forecast_table['날짜'].dt.strftime('%Y-%m-%d')
+            
+            # 숫자에 천 단위 구분자 추가
+            for col in ['예상 매출', '최소 예측값', '최대 예측값']:
+                forecast_table[col] = forecast_table[col].apply(lambda x: f"{x:,.0f}")
+            
             st.markdown(f"#### 4. 예측 결과 테이블 (향후 {forecast_days}일)")
             st.dataframe(forecast_table, use_container_width=True)
 

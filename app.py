@@ -335,15 +335,16 @@ if sales_file and marketing_file and promotion_file:
             # Prophet 모델 파라미터 설정
             if date_range < 30:  # 데이터가 30일 미만인 경우
                 model = Prophet(
-                    yearly_seasonality=False,  # 연간 계절성 비활성화
-                    weekly_seasonality=True,   # 주간 계절성 활성화
-                    daily_seasonality=False,   # 일간 계절성 비활성화
-                    growth='linear',           # 선형 성장 가정
-                    changepoint_prior_scale=0.05,  # 변화점 민감도
-                    seasonality_prior_scale=10.0,  # 계절성 강도
-                    seasonality_mode='multiplicative'  # 계절성 모드
+                    yearly_seasonality=False,
+                    weekly_seasonality=True,
+                    daily_seasonality=False,
+                    growth='linear',
+                    changepoint_prior_scale=0.05,
+                    seasonality_prior_scale=10.0,
+                    seasonality_mode='multiplicative',
+                    interval_width=0.85  # 85% 신뢰구간으로 축소
                 )
-            else:  # 데이터가 충분한 경우
+            else:
                 model = Prophet(
                     yearly_seasonality=True if date_range > 365 else False,
                     weekly_seasonality=True,
@@ -351,11 +352,18 @@ if sales_file and marketing_file and promotion_file:
                     growth='linear',
                     changepoint_prior_scale=0.05,
                     seasonality_prior_scale=10.0,
-                    seasonality_mode='multiplicative'
+                    seasonality_mode='multiplicative',
+                    interval_width=0.85  # 85% 신뢰구간으로 축소
                 )
             
-            # 최소 매출액 계산 (전체 데이터의 25퍼센타일 값)
-            min_sales = sales_prophet['y'].quantile(0.25)
+            # 과거 데이터 통계 계산
+            min_sales = sales_prophet['y'].quantile(0.25)  # 25퍼센타일
+            max_sales = sales_prophet['y'].quantile(0.95)  # 95퍼센타일
+            mean_sales = sales_prophet['y'].mean()
+            std_sales = sales_prophet['y'].std()
+            
+            # 예측 상한값 설정 (평균 + 2 표준편차 또는 95퍼센타일 중 큰 값)
+            upper_bound = max(mean_sales + 2 * std_sales, max_sales)
             
             model.fit(sales_prophet)
             
@@ -364,16 +372,15 @@ if sales_file and marketing_file and promotion_file:
             
             # 마지막 데이터 날짜부터 예측 시작
             last_date = sales_prophet['ds'].max()
-            future_dates = pd.date_range(start=last_date, periods=forecast_periods + 1, freq='D')[1:]  # 다음날부터 예측
+            future_dates = pd.date_range(start=last_date, periods=forecast_periods + 1, freq='D')[1:]
             future_df = pd.DataFrame({'ds': future_dates})
             
             forecast = model.predict(future_df)
             
-            # Clip negative predictions to minimum sales value and set reasonable upper bound
-            max_historical = sales_prophet['y'].max()
-            forecast['yhat'] = forecast['yhat'].clip(lower=min_sales, upper=max_historical * 2)  # 최소값을 25퍼센타일로 설정
+            # 예측값 범위 조정
+            forecast['yhat'] = forecast['yhat'].clip(lower=min_sales, upper=upper_bound)
             forecast['yhat_lower'] = forecast['yhat_lower'].clip(lower=min_sales)
-            forecast['yhat_upper'] = forecast['yhat_upper'].clip(lower=min_sales, upper=max_historical * 3)
+            forecast['yhat_upper'] = forecast['yhat_upper'].clip(lower=forecast['yhat'], upper=upper_bound)
 
             # Add warning for short data periods
             if date_range < 30:

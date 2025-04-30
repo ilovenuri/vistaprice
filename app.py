@@ -195,8 +195,131 @@ if sales_file and marketing_file and promotion_file:
         sales_df['sales_amount'] = sales_df['sales_amount'].astype(str).str.replace(',', '').astype(float)
         
         # Display the data in tabs
-        tab1, tab2, tab3, tab4 = st.tabs(["Sales", "Marketing", "Promotion", "Forecast"])
+        tab4, tab1, tab2, tab3 = st.tabs(["Forecast", "Sales", "Marketing", "Promotion"])
         
+        with tab4:
+            st.subheader("Sales Forecast")
+            st.markdown("""
+                **분석 방법:**<br>
+                본 예측은 Facebook Prophet 시계열 모델을 사용하여, 일별 실판매금액의 추세와 계절성을 반영해 향후 30일간의 매출을 예측합니다.<br>
+                예측 결과는 아래 그래프와 표로 확인할 수 있습니다. (예상 매출이 음수로 예측될 경우 0으로 보정하여 표시합니다.)
+            """, unsafe_allow_html=True)
+
+            # Train Prophet model
+            sales_prophet = prepare_data_for_prophet(sales_df)
+            model = Prophet(yearly_seasonality=True, 
+                          weekly_seasonality=True, 
+                          daily_seasonality=True)
+            model.fit(sales_prophet)
+            # Create future dates for prediction
+            future_dates = model.make_future_dataframe(periods=30)
+            forecast = model.predict(future_dates)
+
+            # Clip negative predictions to zero
+            forecast['yhat'] = forecast['yhat'].clip(lower=0)
+            forecast['yhat_lower'] = forecast['yhat_lower'].clip(lower=0)
+            forecast['yhat_upper'] = forecast['yhat_upper'].clip(lower=0)
+
+            # Calculate trend analysis
+            current_avg = sales_prophet['y'].mean()
+            future_avg = forecast['yhat'].tail(30).mean()
+            trend_direction = "상승" if future_avg > current_avg else "하락"
+            trend_percentage = abs((future_avg - current_avg) / current_avg * 100)
+
+            # Generate insights
+            st.markdown("### 📊 매출 분석 및 인사이트")
+            
+            # Current performance analysis
+            st.markdown("#### 1. 현재 매출 현황")
+            st.markdown(f"""
+            - **평균 일일 매출**: {current_avg:,.0f}원
+            - **최근 30일 매출 추세**: {trend_direction}세 ({trend_percentage:.1f}%)
+            - **주간 패턴**: {get_weekly_pattern(sales_prophet)}
+            """)
+
+            # Future outlook
+            st.markdown("#### 2. 향후 30일 전망")
+            st.markdown(f"""
+            - **예상 평균 일일 매출**: {future_avg:,.0f}원
+            - **예상 매출 범위**: {forecast['yhat_lower'].tail(30).mean():,.0f}원 ~ {forecast['yhat_upper'].tail(30).mean():,.0f}원
+            - **주요 예상 이벤트**: {get_expected_events(forecast)}
+            """)
+
+            # Improvement recommendations
+            st.markdown("#### 3. 매출 개선 방안")
+            if trend_direction == "하락":
+                st.markdown("""
+                - **프로모션 전략 강화**
+                  - 주말/휴일 특별 할인 이벤트
+                  - VIP 고객 대상 맞춤형 프로모션
+                  - 신규 고객 유치를 위한 입문 패키지
+                
+                - **마케팅 채널 다각화**
+                  - 소셜 미디어 광고 집행
+                  - 이메일 마케팅 캠페인 강화
+                  - 인플루언서 마케팅 도입 검토
+                
+                - **고객 경험 개선**
+                  - 리워드 프로그램 도입
+                  - 구매 후 리뷰 이벤트
+                  - 맞춤형 추천 시스템 도입
+                """)
+            else:
+                st.markdown("""
+                - **현재 성공 요인 강화**
+                  - 인기 상품 재고 확보
+                  - 고객 만족도 높은 서비스 유지
+                  - 성공적인 프로모션 전략 지속
+                
+                - **신규 기회 포착**
+                  - 신규 시장 진출 검토
+                  - 제품 라인업 확장
+                  - 고객 세그먼트 확대
+                """)
+
+            # Plot forecast
+            fig = go.Figure()
+            # Actual values
+            fig.add_trace(go.Scatter(x=sales_prophet['ds'], 
+                                   y=sales_prophet['y'],
+                                   name='Actual Sales',
+                                   mode='markers+lines'))
+            # Predicted values
+            fig.add_trace(go.Scatter(x=forecast['ds'],
+                                   y=forecast['yhat'],
+                                   name='Forecast Sales',
+                                   mode='lines',
+                                   line=dict(dash='dash')))
+            # Confidence interval
+            fig.add_trace(go.Scatter(x=forecast['ds'],
+                                   y=forecast['yhat_upper'],
+                                   fill=None,
+                                   mode='lines',
+                                   line=dict(width=0),
+                                   showlegend=False))
+            fig.add_trace(go.Scatter(x=forecast['ds'],
+                                   y=forecast['yhat_lower'],
+                                   fill='tonexty',
+                                   mode='lines',
+                                   line=dict(width=0),
+                                   name='95% CI'))
+            fig.update_layout(title='Sales Forecast (Next 30 Days)',
+                            xaxis_title='Date',
+                            yaxis_title='Sales Amount',
+                            hovermode='x unified')
+            st.plotly_chart(fig, use_container_width=True)
+
+            # Show forecast table (future only)
+            forecast_table = forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail(30)
+            forecast_table = forecast_table.rename(columns={
+                'ds': 'Date',
+                'yhat': 'Predicted Sales',
+                'yhat_lower': 'Lower Bound',
+                'yhat_upper': 'Upper Bound'
+            })
+            st.markdown("#### 4. 예측 결과 테이블 (향후 30일)")
+            st.dataframe(forecast_table, use_container_width=True)
+
         with tab1:
             st.subheader("Sales Data")
             st.write(sales_df)
@@ -223,61 +346,29 @@ if sales_file and marketing_file and promotion_file:
             fig = px.bar(promotion_df, x='date', y='discount_rate', color='event_name',
                         title='Discount Rate by Event')
             st.plotly_chart(fig, use_container_width=True)
-            
-        with tab4:
-            st.subheader("Sales Forecast")
-            
-            # Train Prophet model
-            sales_prophet = prepare_data_for_prophet(sales_df)
-            model = Prophet(yearly_seasonality=True, 
-                          weekly_seasonality=True, 
-                          daily_seasonality=True)
-            model.fit(sales_prophet)
-            
-            # Create future dates for prediction
-            future_dates = model.make_future_dataframe(periods=30)
-            forecast = model.predict(future_dates)
-            
-            # Plot forecast
-            fig = go.Figure()
-            
-            # Actual values
-            fig.add_trace(go.Scatter(x=sales_prophet['ds'], 
-                                   y=sales_prophet['y'],
-                                   name='Actual Sales',
-                                   mode='markers+lines'))
-            
-            # Predicted values
-            fig.add_trace(go.Scatter(x=forecast['ds'],
-                                   y=forecast['yhat'],
-                                   name='Forecast Sales',
-                                   mode='lines',
-                                   line=dict(dash='dash')))
-            
-            # Confidence interval
-            fig.add_trace(go.Scatter(x=forecast['ds'],
-                                   y=forecast['yhat_upper'],
-                                   fill=None,
-                                   mode='lines',
-                                   line=dict(width=0),
-                                   showlegend=False))
-            
-            fig.add_trace(go.Scatter(x=forecast['ds'],
-                                   y=forecast['yhat_lower'],
-                                   fill='tonexty',
-                                   mode='lines',
-                                   line=dict(width=0),
-                                   name='95% CI'))
-            
-            fig.update_layout(title='Sales Forecast (Next 30 Days)',
-                            xaxis_title='Date',
-                            yaxis_title='Sales Amount',
-                            hovermode='x unified')
-            
-            st.plotly_chart(fig, use_container_width=True)
 
         st.session_state.data_loaded = True
 
     except Exception as e:
         st.error(f"Error processing data: {str(e)}")
         st.info("Please make sure your CSV files match the sample template format.") # force update from desktop copy
+
+def get_weekly_pattern(df):
+    """주간 매출 패턴 분석"""
+    df['day_of_week'] = pd.to_datetime(df['ds']).dt.day_name()
+    weekly_avg = df.groupby('day_of_week')['y'].mean()
+    peak_day = weekly_avg.idxmax()
+    return f"주간 최고 매출일: {peak_day}"
+
+def get_expected_events(forecast):
+    """예상되는 주요 이벤트 분석"""
+    # 주말/휴일 식별
+    forecast['date'] = pd.to_datetime(forecast['ds'])
+    forecast['is_weekend'] = forecast['date'].dt.dayofweek >= 5
+    weekend_sales = forecast[forecast['is_weekend']]['yhat'].mean()
+    weekday_sales = forecast[~forecast['is_weekend']]['yhat'].mean()
+    
+    if weekend_sales > weekday_sales * 1.2:
+        return "주말 매출이 평일 대비 20% 이상 높을 것으로 예상"
+    else:
+        return "주중/주말 매출이 안정적으로 유지될 것으로 예상"

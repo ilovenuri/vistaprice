@@ -336,19 +336,26 @@ if sales_file and marketing_file and promotion_file:
             if date_range < 30:  # 데이터가 30일 미만인 경우
                 model = Prophet(
                     yearly_seasonality=False,  # 연간 계절성 비활성화
-                    weekly_seasonality=False,  # 주간 계절성 비활성화
+                    weekly_seasonality=True,   # 주간 계절성 활성화
                     daily_seasonality=False,   # 일간 계절성 비활성화
                     growth='linear',           # 선형 성장 가정
-                    changepoint_prior_scale=0.05  # 변화점 민감도 감소
+                    changepoint_prior_scale=0.05,  # 변화점 민감도
+                    seasonality_prior_scale=10.0,  # 계절성 강도
+                    seasonality_mode='multiplicative'  # 계절성 모드
                 )
             else:  # 데이터가 충분한 경우
                 model = Prophet(
                     yearly_seasonality=True if date_range > 365 else False,
-                    weekly_seasonality=True if date_range > 14 else False,
+                    weekly_seasonality=True,
                     daily_seasonality=True if date_range > 7 else False,
                     growth='linear',
-                    changepoint_prior_scale=0.05
+                    changepoint_prior_scale=0.05,
+                    seasonality_prior_scale=10.0,
+                    seasonality_mode='multiplicative'
                 )
+            
+            # 최소 매출액 계산 (전체 데이터의 25퍼센타일 값)
+            min_sales = sales_prophet['y'].quantile(0.25)
             
             model.fit(sales_prophet)
             
@@ -361,12 +368,12 @@ if sales_file and marketing_file and promotion_file:
             future_df = pd.DataFrame({'ds': future_dates})
             
             forecast = model.predict(future_df)
-        
-            # Clip negative predictions to zero and set reasonable upper bound
+            
+            # Clip negative predictions to minimum sales value and set reasonable upper bound
             max_historical = sales_prophet['y'].max()
-            forecast['yhat'] = forecast['yhat'].clip(lower=0, upper=max_historical * 2)  # 최대 과거 매출의 2배로 제한
-            forecast['yhat_lower'] = forecast['yhat_lower'].clip(lower=0)
-            forecast['yhat_upper'] = forecast['yhat_upper'].clip(lower=0, upper=max_historical * 3)  # 신뢰구간은 3배로 제한
+            forecast['yhat'] = forecast['yhat'].clip(lower=min_sales, upper=max_historical * 2)  # 최소값을 25퍼센타일로 설정
+            forecast['yhat_lower'] = forecast['yhat_lower'].clip(lower=min_sales)
+            forecast['yhat_upper'] = forecast['yhat_upper'].clip(lower=min_sales, upper=max_historical * 3)
 
             # Add warning for short data periods
             if date_range < 30:
@@ -434,20 +441,24 @@ if sales_file and marketing_file and promotion_file:
 
             # Plot forecast
             fig = go.Figure()
-            
+
+            # 전체 데이터 준비 (실제 데이터 + 예측 데이터)
+            all_dates = pd.concat([sales_prophet['ds'], forecast['ds']]).unique()
+            date_range = pd.date_range(start=all_dates.min(), end=all_dates.max(), freq='D')
+
             # Actual values
             fig.add_trace(go.Scatter(x=sales_prophet['ds'], 
                                    y=sales_prophet['y'],
                                    name='Actual Sales',
                                    mode='markers+lines'))
-            
+
             # Predicted values (전체 예측 기간 표시)
             fig.add_trace(go.Scatter(x=forecast['ds'],
                                    y=forecast['yhat'],
                                    name='Forecast Sales',
                                    mode='lines',
                                    line=dict(dash='dash')))
-            
+
             # Confidence interval
             fig.add_trace(go.Scatter(x=forecast['ds'],
                                    y=forecast['yhat_upper'],
@@ -455,26 +466,30 @@ if sales_file and marketing_file and promotion_file:
                                    mode='lines',
                                    line=dict(width=0),
                                    showlegend=False))
-            
+
             fig.add_trace(go.Scatter(x=forecast['ds'],
                                    y=forecast['yhat_lower'],
                                    fill='tonexty',
                                    mode='lines',
                                    line=dict(width=0),
                                    name='95% CI'))
-            
+
             # Update layout with extended date range
-            last_forecast_date = forecast['ds'].max()
             fig.update_layout(
                 title=f'Sales Forecast (Next {forecast_days} Days)',
                 xaxis_title='Date',
                 yaxis_title='Sales Amount',
                 hovermode='x unified',
                 xaxis=dict(
-                    range=[sales_prophet['ds'].min(), last_forecast_date],
+                    range=[date_range.min(), date_range.max()],
                     type='date'
-                )
+                ),
+                showlegend=True
             )
+
+            # 그래프 범위 강제 설정
+            fig.update_xaxes(range=[date_range.min(), date_range.max()])
+            
             st.plotly_chart(fig, use_container_width=True)
 
             # Show forecast table (future only)

@@ -309,9 +309,22 @@ if sales_file and marketing_file and promotion_file:
             st.subheader("Sales Forecast")
             st.markdown("""
                 **분석 방법:**<br>
-                본 예측은 Facebook Prophet 시계열 모델을 사용하여, 일별 실판매금액의 추세와 계절성을 반영해 향후 30일간의 매출을 예측합니다.<br>
+                본 예측은 Facebook Prophet 시계열 모델을 사용하여, 일별 실판매금액의 추세와 계절성을 반영해 향후 매출을 예측합니다.<br>
                 예측 결과는 아래 그래프와 표로 확인할 수 있습니다. (예상 매출이 음수로 예측될 경우 0으로 보정하여 표시합니다.)
             """, unsafe_allow_html=True)
+
+            # Forecast period selection
+            forecast_period_options = {
+                "30일": 30,
+                "60일": 60,
+                "90일": 90
+            }
+            selected_period = st.selectbox(
+                "예측 기간을 선택하세요",
+                options=list(forecast_period_options.keys()),
+                index=0
+            )
+            forecast_days = forecast_period_options[selected_period]
 
             # Train Prophet model
             sales_prophet = prepare_data_for_prophet(sales_df)
@@ -340,10 +353,10 @@ if sales_file and marketing_file and promotion_file:
             model.fit(sales_prophet)
             
             # 예측 기간 설정 (데이터 기간에 따라 조정)
-            forecast_periods = min(30, max(7, date_range // 2))  # 데이터 기간의 절반까지만 예측
+            forecast_periods = min(forecast_days, max(7, date_range // 2))  # 데이터 기간의 절반까지만 예측
             future_dates = model.make_future_dataframe(periods=forecast_periods)
             forecast = model.predict(future_dates)
-
+        
             # Clip negative predictions to zero and set reasonable upper bound
             max_historical = sales_prophet['y'].max()
             forecast['yhat'] = forecast['yhat'].clip(lower=0, upper=max_historical * 2)  # 최대 과거 매출의 2배로 제한
@@ -359,7 +372,7 @@ if sales_file and marketing_file and promotion_file:
 
             # Calculate trend analysis
             current_avg = sales_prophet['y'].mean()
-            future_avg = forecast['yhat'].tail(30).mean()
+            future_avg = forecast['yhat'].tail(forecast_days).mean()
             trend_direction = "상승" if future_avg > current_avg else "하락"
             trend_percentage = abs((future_avg - current_avg) / current_avg * 100)
 
@@ -370,15 +383,15 @@ if sales_file and marketing_file and promotion_file:
             st.markdown("#### 1. 현재 매출 현황")
             st.markdown(f"""
             - **평균 일일 매출**: {current_avg:,.0f}원
-            - **최근 30일 매출 추세**: {trend_direction}세 ({trend_percentage:.1f}%)
+            - **향후 {forecast_days}일 매출 추세**: {trend_direction}세 ({trend_percentage:.1f}%)
             - **주간 패턴**: {get_weekly_pattern(sales_prophet)}
             """)
 
             # Future outlook
-            st.markdown("#### 2. 향후 30일 전망")
+            st.markdown(f"#### 2. 향후 {forecast_days}일 전망")
             st.markdown(f"""
             - **예상 평균 일일 매출**: {future_avg:,.0f}원
-            - **예상 매출 범위**: {forecast['yhat_lower'].tail(30).mean():,.0f}원 ~ {forecast['yhat_upper'].tail(30).mean():,.0f}원
+            - **예상 매출 범위**: {forecast['yhat_lower'].tail(forecast_days).mean():,.0f}원 ~ {forecast['yhat_upper'].tail(forecast_days).mean():,.0f}원
             - **주요 예상 이벤트**: {get_expected_events(forecast)}
             """)
 
@@ -440,21 +453,21 @@ if sales_file and marketing_file and promotion_file:
                                    mode='lines',
                                    line=dict(width=0),
                                    name='95% CI'))
-            fig.update_layout(title='Sales Forecast (Next 30 Days)',
+            fig.update_layout(title=f'Sales Forecast (Next {forecast_days} Days)',
                             xaxis_title='Date',
                             yaxis_title='Sales Amount',
                             hovermode='x unified')
             st.plotly_chart(fig, use_container_width=True)
 
             # Show forecast table (future only)
-            forecast_table = forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail(30)
+            forecast_table = forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail(forecast_days)
             forecast_table = forecast_table.rename(columns={
                 'ds': 'Date',
                 'yhat': 'Predicted Sales',
                 'yhat_lower': 'Lower Bound',
                 'yhat_upper': 'Upper Bound'
             })
-            st.markdown("#### 4. 예측 결과 테이블 (향후 30일)")
+            st.markdown(f"#### 4. 예측 결과 테이블 (향후 {forecast_days}일)")
             st.dataframe(forecast_table, use_container_width=True)
 
         with tab1:

@@ -15,6 +15,26 @@ import chardet
 # Page config
 st.set_page_config(page_title="Marketing Effect & Sales Forecast App", layout="wide")
 
+def get_weekly_pattern(df):
+    """주간 매출 패턴 분석"""
+    df['day_of_week'] = pd.to_datetime(df['ds']).dt.day_name()
+    weekly_avg = df.groupby('day_of_week')['y'].mean()
+    peak_day = weekly_avg.idxmax()
+    return f"주간 최고 매출일: {peak_day}"
+
+def get_expected_events(forecast):
+    """예상되는 주요 이벤트 분석"""
+    # 주말/휴일 식별
+    forecast['date'] = pd.to_datetime(forecast['ds'])
+    forecast['is_weekend'] = forecast['date'].dt.dayofweek >= 5
+    weekend_sales = forecast[forecast['is_weekend']]['yhat'].mean()
+    weekday_sales = forecast[~forecast['is_weekend']]['yhat'].mean()
+    
+    if weekend_sales > weekday_sales * 1.2:
+        return "주말 매출이 평일 대비 20% 이상 높을 것으로 예상"
+    else:
+        return "주중/주말 매출이 안정적으로 유지될 것으로 예상"
+
 def get_csv_download_link(csv_string, filename):
     """Generates a link to download the CSV file"""
     b64 = base64.b64encode(csv_string.encode()).decode()
@@ -352,23 +372,3 @@ if sales_file and marketing_file and promotion_file:
     except Exception as e:
         st.error(f"Error processing data: {str(e)}")
         st.info("Please make sure your CSV files match the sample template format.") # force update from desktop copy
-
-def get_weekly_pattern(df):
-    """주간 매출 패턴 분석"""
-    df['day_of_week'] = pd.to_datetime(df['ds']).dt.day_name()
-    weekly_avg = df.groupby('day_of_week')['y'].mean()
-    peak_day = weekly_avg.idxmax()
-    return f"주간 최고 매출일: {peak_day}"
-
-def get_expected_events(forecast):
-    """예상되는 주요 이벤트 분석"""
-    # 주말/휴일 식별
-    forecast['date'] = pd.to_datetime(forecast['ds'])
-    forecast['is_weekend'] = forecast['date'].dt.dayofweek >= 5
-    weekend_sales = forecast[forecast['is_weekend']]['yhat'].mean()
-    weekday_sales = forecast[~forecast['is_weekend']]['yhat'].mean()
-    
-    if weekend_sales > weekday_sales * 1.2:
-        return "주말 매출이 평일 대비 20% 이상 높을 것으로 예상"
-    else:
-        return "주중/주말 매출이 안정적으로 유지될 것으로 예상"

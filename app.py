@@ -434,17 +434,20 @@ if sales_file and marketing_file and promotion_file:
 
             # Plot forecast
             fig = go.Figure()
+            
             # Actual values
             fig.add_trace(go.Scatter(x=sales_prophet['ds'], 
                                    y=sales_prophet['y'],
                                    name='Actual Sales',
                                    mode='markers+lines'))
-            # Predicted values
+            
+            # Predicted values (전체 예측 기간 표시)
             fig.add_trace(go.Scatter(x=forecast['ds'],
                                    y=forecast['yhat'],
                                    name='Forecast Sales',
                                    mode='lines',
                                    line=dict(dash='dash')))
+            
             # Confidence interval
             fig.add_trace(go.Scatter(x=forecast['ds'],
                                    y=forecast['yhat_upper'],
@@ -452,16 +455,26 @@ if sales_file and marketing_file and promotion_file:
                                    mode='lines',
                                    line=dict(width=0),
                                    showlegend=False))
+            
             fig.add_trace(go.Scatter(x=forecast['ds'],
                                    y=forecast['yhat_lower'],
                                    fill='tonexty',
                                    mode='lines',
                                    line=dict(width=0),
                                    name='95% CI'))
-            fig.update_layout(title=f'Sales Forecast (Next {forecast_days} Days)',
-                            xaxis_title='Date',
-                            yaxis_title='Sales Amount',
-                            hovermode='x unified')
+            
+            # Update layout with extended date range
+            last_forecast_date = forecast['ds'].max()
+            fig.update_layout(
+                title=f'Sales Forecast (Next {forecast_days} Days)',
+                xaxis_title='Date',
+                yaxis_title='Sales Amount',
+                hovermode='x unified',
+                xaxis=dict(
+                    range=[sales_prophet['ds'].min(), last_forecast_date],
+                    type='date'
+                )
+            )
             st.plotly_chart(fig, use_container_width=True)
 
             # Show forecast table (future only)

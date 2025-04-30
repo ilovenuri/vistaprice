@@ -288,11 +288,6 @@ if sales_file and marketing_file and promotion_file:
         sales_df = clean_columns(sales_df)
         marketing_df = clean_columns(marketing_df)
         promotion_df = clean_columns(promotion_df)
-
-        # Debug: Print cleaned column names
-        st.write("Cleaned Sales DataFrame columns:", sales_df.columns.tolist())
-        st.write("Cleaned Marketing DataFrame columns:", marketing_df.columns.tolist())
-        st.write("Cleaned Promotion DataFrame columns:", promotion_df.columns.tolist())
         
         # Convert date columns to datetime
         sales_df['date'] = pd.to_datetime(sales_df['date'])

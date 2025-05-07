@@ -557,6 +557,25 @@ if sales_file and marketing_file and promotion_file:
                         title='Discount Rate by Event')
             st.plotly_chart(fig, use_container_width=True)
 
+        # 마케팅/프로모션 데이터의 date 컬럼 타입 및 NaN 여부 확인
+        st.write("marketing_df['date'] dtype:", marketing_df['date'].dtype)
+        st.write("promotion_df['date'] dtype:", promotion_df['date'].dtype)
+        st.write("marketing_df['date'] NaN rows:", marketing_df[marketing_df['date'].isna()])
+        st.write("promotion_df['date'] NaN rows:", promotion_df[promotion_df['date'].isna()])
+
+        # future 생성 직후
+        st.write("future 생성 직후 head:", future.head())
+        st.write("future 생성 직후 ds NaN rows:", future[future['ds'].isna()])
+
+        # merge 후
+        future = future.merge(marketing_df[['date', 'marketing']], left_on='ds', right_on='date', how='left')
+        future = future.merge(promotion_df[['date', 'promotion']], left_on='ds', right_on='date', how='left')
+        if 'date' in future.columns:
+            future = future.drop('date', axis=1)
+
+        st.write("merge 후 future head:", future.head())
+        st.write("merge 후 ds NaN rows:", future[future['ds'].isna()])
+
         st.session_state.data_loaded = True
 
     except Exception as e:

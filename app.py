@@ -361,6 +361,9 @@ if sales_file and marketing_file and promotion_file:
             future['marketing'] = future['marketing'].fillna(0)
             future['promotion'] = future['promotion'].fillna(0)
             
+            # Remove rows where ds is NaN (to prevent Prophet error)
+            future = future[future['ds'].notna()]
+            
             # Make predictions
             forecast = model.predict(future)
             

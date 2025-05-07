@@ -351,17 +351,25 @@ if sales_file and marketing_file and promotion_file:
             
             # Create future dataframe
             future = model.make_future_dataframe(periods=forecast_days)
-            
+
+            # [1차] future 생성 직후 NaN 제거
+            if future['ds'].isna().any():
+                st.write('future 생성 직후 ds NaN row:', future[future['ds'].isna()])
+            future = future[future['ds'].notna()]
+
             # Add regressor values to future dataframe
             future = future.merge(marketing_df[['date', 'marketing']], left_on='ds', right_on='date', how='left')
             future = future.merge(promotion_df[['date', 'promotion']], left_on='ds', right_on='date', how='left')
-            future = future.drop('date', axis=1)
-            
+            if 'date' in future.columns:
+                future = future.drop('date', axis=1)
+
             # Fill missing values with 0
             future['marketing'] = future['marketing'].fillna(0)
             future['promotion'] = future['promotion'].fillna(0)
-            
-            # Remove rows where ds is NaN (to prevent Prophet error)
+
+            # [2차] merge 후 NaN 제거 및 디버깅 출력
+            if future['ds'].isna().any():
+                st.write('merge 후 ds NaN row:', future[future['ds'].isna()])
             future = future[future['ds'].notna()]
             
             # Make predictions

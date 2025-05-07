@@ -355,8 +355,6 @@ if sales_file and marketing_file and promotion_file:
 
             # Create future dataframe
             future = model.make_future_dataframe(periods=forecast_days)
-
-            # future 생성 직후 ds NaN row 및 타입 출력
             st.write('future 생성 직후 ds dtype:', future['ds'].dtype)
             st.write('future 생성 직후 ds NaN row:', future[future['ds'].isna()])
 
@@ -382,8 +380,9 @@ if sales_file and marketing_file and promotion_file:
             if future['ds'].isna().any():
                 st.error("예측 직전에도 ds 컬럼에 NaN이 남아있습니다. 아래 데이터를 확인하세요.")
                 st.write(future[future['ds'].isna()])
-                raise ValueError("예측 직전에도 ds 컬럼에 NaN이 남아있습니다.")
+                st.stop()
 
+            # Prophet 예측만 try/except로 감싸기
             try:
                 forecast = model.predict(future)
             except Exception as e:
@@ -391,7 +390,7 @@ if sales_file and marketing_file and promotion_file:
                 st.write('future (except):', future.head())
                 st.write('future ds NaN row (except):', future[future['ds'].isna()])
                 st.info("Please make sure your CSV files match the sample template format.")
-                raise
+                st.stop()
 
             # Convert predictions back from log scale
             forecast['yhat'] = np.expm1(forecast['yhat'])

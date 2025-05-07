@@ -324,32 +324,21 @@ if sales_file and marketing_file and promotion_file:
             # Train Prophet model
             sales_prophet = prepare_data_for_prophet(sales_df)
             
-            # 데이터 기간이 충분한지 확인
-            date_range = (sales_prophet['ds'].max() - sales_prophet['ds'].min()).days
+            # 1. 이상치 완화 (예: 상위 99% 이상 clip)
+            q99 = sales_prophet['y'].quantile(0.99)
+            sales_prophet['y'] = sales_prophet['y'].clip(upper=q99)
             
-            # Prophet 모델 파라미터 설정
-            if date_range < 30:  # 데이터가 30일 미만인 경우
-                model = Prophet(
-                    yearly_seasonality=False,
-                    weekly_seasonality=True,
-                    daily_seasonality=False,
-                    growth='linear',
-                    changepoint_prior_scale=0.05,
-                    seasonality_prior_scale=10.0,
-                    seasonality_mode='multiplicative',
-                    interval_width=0.85  # 85% 신뢰구간으로 축소
-                )
-            else:
-                model = Prophet(
-                    yearly_seasonality=True if date_range > 365 else False,
-                    weekly_seasonality=True,
-                    daily_seasonality=True if date_range > 7 else False,
-                    growth='linear',
-                    changepoint_prior_scale=0.05,
-                    seasonality_prior_scale=10.0,
-                    seasonality_mode='multiplicative',
-                    interval_width=0.85  # 85% 신뢰구간으로 축소
-                )
+            # 2. Prophet 파라미터 보수적으로
+            model = Prophet(
+                yearly_seasonality=False,
+                weekly_seasonality=True,
+                daily_seasonality=False,
+                growth='linear',
+                changepoint_prior_scale=0.03,  # 더 낮게
+                seasonality_prior_scale=5.0,   # 더 낮게
+                seasonality_mode='multiplicative',
+                interval_width=0.85            # 너무 높이지 않기
+            )
             
             # 과거 데이터 통계 계산
             min_sales = sales_prophet['y'].quantile(0.25)  # 25퍼센타일

@@ -376,12 +376,23 @@ if sales_file and marketing_file and promotion_file:
             # 예측 직전 ds NaN row 및 타입 출력
             st.write('예측 직전 ds dtype:', future['ds'].dtype)
             st.write('예측 직전 ds NaN row:', future[future['ds'].isna()])
+            st.write('예측 직전 ds NaN 개수:', future['ds'].isna().sum())
+            st.write('예측 직전 future head:', future.head())
+            st.write('예측 직전 future tail:', future.tail())
             if future['ds'].isna().any():
+                st.error("예측 직전에도 ds 컬럼에 NaN이 남아있습니다. 아래 데이터를 확인하세요.")
+                st.write(future[future['ds'].isna()])
                 raise ValueError("예측 직전에도 ds 컬럼에 NaN이 남아있습니다.")
 
-            # Make predictions
-            forecast = model.predict(future)
-            
+            try:
+                forecast = model.predict(future)
+            except Exception as e:
+                st.error(f"Error processing data: {str(e)}")
+                st.write('future (except):', future.head())
+                st.write('future ds NaN row (except):', future[future['ds'].isna()])
+                st.info("Please make sure your CSV files match the sample template format.")
+                raise
+
             # Convert predictions back from log scale
             forecast['yhat'] = np.expm1(forecast['yhat'])
             forecast['yhat_lower'] = np.expm1(forecast['yhat_lower'])

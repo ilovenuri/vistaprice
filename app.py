@@ -321,88 +321,60 @@ if sales_file and marketing_file and promotion_file:
             )
             forecast_days = forecast_period_options[selected_period]
 
-            # Prepare data for Prophet
-            sales_prophet = sales_df.rename(columns={'date': 'ds', 'sales_amount': 'y'})
+            # Train Prophet model
+            sales_prophet = prepare_data_for_prophet(sales_df)
             
-            # Apply log transformation to reduce variance
-            sales_prophet['y'] = np.log1p(sales_prophet['y'])
+            # 데이터 기간이 충분한지 확인
+            date_range = (sales_prophet['ds'].max() - sales_prophet['ds'].min()).days
             
-            # Remove outliers (values above 99th percentile)
-            q95 = sales_prophet['y'].quantile(0.95)
-            sales_prophet['y'] = sales_prophet['y'].clip(upper=q95)
+            # Prophet 모델 파라미터 설정
+            if date_range < 30:  # 데이터가 30일 미만인 경우
+                model = Prophet(
+                    yearly_seasonality=False,
+                    weekly_seasonality=True,
+                    daily_seasonality=False,
+                    growth='linear',
+                    changepoint_prior_scale=0.05,
+                    seasonality_prior_scale=10.0,
+                    seasonality_mode='multiplicative',
+                    interval_width=0.85  # 85% 신뢰구간으로 축소
+                )
+            else:
+                model = Prophet(
+                    yearly_seasonality=True if date_range > 365 else False,
+                    weekly_seasonality=True,
+                    daily_seasonality=True if date_range > 7 else False,
+                    growth='linear',
+                    changepoint_prior_scale=0.05,
+                    seasonality_prior_scale=10.0,
+                    seasonality_mode='multiplicative',
+                    interval_width=0.85  # 85% 신뢰구간으로 축소
+                )
             
-            # Create and fit Prophet model
-            model = Prophet(
-                yearly_seasonality=True,
-                weekly_seasonality=True,
-                daily_seasonality=False,
-                growth='linear',
-                changepoint_prior_scale=0.01,  # 더 보수적으로
-                seasonality_prior_scale=2.0,   # 더 보수적으로
-                seasonality_mode='multiplicative',
-                interval_width=0.85
-            )
+            # 과거 데이터 통계 계산
+            min_sales = sales_prophet['y'].quantile(0.25)  # 25퍼센타일
+            max_sales = sales_prophet['y'].quantile(0.95)  # 95퍼센타일
+            mean_sales = sales_prophet['y'].mean()
+            std_sales = sales_prophet['y'].std()
             
-            # Add marketing and promotion as regressors
-            model.add_regressor('marketing')
-            model.add_regressor('promotion')
+            # 예측 상한값 설정 (평균 + 2 표준편차 또는 95퍼센타일 중 큰 값)
+            upper_bound = max(mean_sales + 2 * std_sales, max_sales)
             
             model.fit(sales_prophet)
             
-            # 마케팅/프로모션 date 컬럼을 무조건 datetime으로 변환
-            marketing_df['date'] = pd.to_datetime(marketing_df['date'])
-            promotion_df['date'] = pd.to_datetime(promotion_df['date'])
-
-            # Create future dataframe
-            future = model.make_future_dataframe(periods=forecast_days)
-            st.write('future 생성 직후 ds dtype:', future['ds'].dtype)
-            st.write('future 생성 직후 ds NaN row:', future[future['ds'].isna()])
-
-            # Add regressor values to future dataframe
-            future = future.merge(marketing_df[['date', 'marketing']], left_on='ds', right_on='date', how='left')
-            future = future.merge(promotion_df[['date', 'promotion']], left_on='ds', right_on='date', how='left')
-            st.write('merge 후 future head:', future.head())
-            st.write('merge 후 ds dtype:', future['ds'].dtype)
-            st.write('merge 후 ds NaN row:', future[future['ds'].isna()])
-            if 'date' in future.columns:
-                future = future.drop('date', axis=1)
-
-            # Fill missing values with 0
-            future['marketing'] = future['marketing'].fillna(0)
-            future['promotion'] = future['promotion'].fillna(0)
-
-            # 예측 직전 ds NaN row 및 타입 출력
-            st.write('예측 직전 ds dtype:', future['ds'].dtype)
-            st.write('예측 직전 ds NaN row:', future[future['ds'].isna()])
-            st.write('예측 직전 ds NaN 개수:', future['ds'].isna().sum())
-            st.write('예측 직전 future head:', future.head())
-            st.write('예측 직전 future tail:', future.tail())
-            if future['ds'].isna().any():
-                st.error("예측 직전에도 ds 컬럼에 NaN이 남아있습니다. 아래 데이터를 확인하세요.")
-                st.write(future[future['ds'].isna()])
-                st.stop()
-
-            # Prophet 예측만 try/except로 감싸기
-            try:
-                forecast = model.predict(future)
-            except Exception as e:
-                st.error(f"Error processing data: {str(e)}")
-                st.write('future (except):', future.head())
-                st.write('future ds NaN row (except):', future[future['ds'].isna()])
-                st.info("Please make sure your CSV files match the sample template format.")
-                st.stop()
-
-            # Convert predictions back from log scale
-            forecast['yhat'] = np.expm1(forecast['yhat'])
-            forecast['yhat_lower'] = np.expm1(forecast['yhat_lower'])
-            forecast['yhat_upper'] = np.expm1(forecast['yhat_upper'])
+            # 예측 기간 설정 (사용자가 선택한 기간 그대로 사용)
+            forecast_periods = forecast_days
             
-            # Calculate upper bound for clipping (max historical sales * 1.5)
-            upper_bound = sales_df['sales_amount'].max() * 1.5
+            # 마지막 데이터 날짜부터 예측 시작
+            last_date = sales_prophet['ds'].max()
+            future_dates = pd.date_range(start=last_date, periods=forecast_periods + 1, freq='D')[1:]
+            future_df = pd.DataFrame({'ds': future_dates})
             
-            # Clip predictions
-            forecast['yhat'] = forecast['yhat'].clip(lower=0, upper=upper_bound)
-            forecast['yhat_lower'] = forecast['yhat_lower'].clip(lower=0, upper=forecast['yhat'])
+            forecast = model.predict(future_df)
+            
+            # 예측값 범위 조정
+            forecast['yhat'] = forecast['yhat'].clip(lower=min_sales, upper=upper_bound)
+            forecast['yhat_lower'] = forecast['yhat_lower'].clip(lower=min_sales)
             forecast['yhat_upper'] = forecast['yhat_upper'].clip(lower=forecast['yhat'], upper=upper_bound)
 
             # Add warning for short data periods
@@ -568,31 +540,8 @@ if sales_file and marketing_file and promotion_file:
                         title='Discount Rate by Event')
             st.plotly_chart(fig, use_container_width=True)
 
-        # 마케팅/프로모션 데이터의 date 컬럼 타입 및 NaN 여부 확인
-        st.write("marketing_df['date'] dtype:", marketing_df['date'].dtype)
-        st.write("promotion_df['date'] dtype:", promotion_df['date'].dtype)
-        st.write("marketing_df['date'] NaN rows:", marketing_df[marketing_df['date'].isna()])
-        st.write("promotion_df['date'] NaN rows:", promotion_df[promotion_df['date'].isna()])
-
-        # future 생성 직후
-        st.write("future 생성 직후 head:", future.head())
-        st.write("future 생성 직후 ds NaN rows:", future[future['ds'].isna()])
-
-        # merge 후
-        future = future.merge(marketing_df[['date', 'marketing']], left_on='ds', right_on='date', how='left')
-        future = future.merge(promotion_df[['date', 'promotion']], left_on='ds', right_on='date', how='left')
-        if 'date' in future.columns:
-            future = future.drop('date', axis=1)
-
-        st.write("merge 후 future head:", future.head())
-        st.write("merge 후 ds NaN rows:", future[future['ds'].isna()])
-
         st.session_state.data_loaded = True
 
     except Exception as e:
         st.error(f"Error processing data: {str(e)}")
-        # 디버깅 정보 추가 출력
-        if 'future' in locals():
-            st.write('future (except):', future.head())
-            st.write('future ds NaN row (except):', future[future['ds'].isna()])
-        st.info("Please make sure your CSV files match the sample template format.")
+        st.info("Please make sure your CSV files match the sample template format.") # force update from desktop copy

@@ -372,6 +372,12 @@ if sales_file and marketing_file and promotion_file:
                 st.write('merge 후 ds NaN row:', future[future['ds'].isna()])
             future = future[future['ds'].notna()]
             
+            # [3차] 예측 직전 NaN 체크 및 강제 중단
+            if future['ds'].isna().any():
+                st.error("예측 직전에도 ds 컬럼에 NaN이 남아있습니다. 아래 데이터를 확인하세요.")
+                st.write(future[future['ds'].isna()])
+                st.stop()
+
             # Make predictions
             forecast = model.predict(future)
             

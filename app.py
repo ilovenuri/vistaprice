@@ -321,49 +321,60 @@ if sales_file and marketing_file and promotion_file:
             )
             forecast_days = forecast_period_options[selected_period]
 
-            # Train Prophet model
-            sales_prophet = prepare_data_for_prophet(sales_df)
+            # Prepare data for Prophet
+            sales_prophet = sales_df.rename(columns={'date': 'ds', 'sales_amount': 'y'})
             
-            # 1. 이상치 완화 (예: 상위 99% 이상 clip)
-            q99 = sales_prophet['y'].quantile(0.99)
-            sales_prophet['y'] = sales_prophet['y'].clip(upper=q99)
+            # Apply log transformation to reduce variance
+            sales_prophet['y'] = np.log1p(sales_prophet['y'])
             
-            # 2. Prophet 파라미터 보수적으로
+            # Remove outliers (values above 99th percentile)
+            q95 = sales_prophet['y'].quantile(0.95)
+            sales_prophet['y'] = sales_prophet['y'].clip(upper=q95)
+            
+            # Create and fit Prophet model
             model = Prophet(
-                yearly_seasonality=False,
+                yearly_seasonality=True,
                 weekly_seasonality=True,
                 daily_seasonality=False,
                 growth='linear',
-                changepoint_prior_scale=0.03,  # 더 낮게
-                seasonality_prior_scale=5.0,   # 더 낮게
+                changepoint_prior_scale=0.01,  # 더 보수적으로
+                seasonality_prior_scale=2.0,   # 더 보수적으로
                 seasonality_mode='multiplicative',
-                interval_width=0.85            # 너무 높이지 않기
+                interval_width=0.85
             )
             
-            # 과거 데이터 통계 계산
-            min_sales = sales_prophet['y'].quantile(0.25)  # 25퍼센타일
-            max_sales = sales_prophet['y'].quantile(0.95)  # 95퍼센타일
-            mean_sales = sales_prophet['y'].mean()
-            std_sales = sales_prophet['y'].std()
-            
-            # 예측 상한값 설정 (평균 + 2 표준편차 또는 95퍼센타일 중 큰 값)
-            upper_bound = max(mean_sales + 2 * std_sales, max_sales)
+            # Add marketing and promotion as regressors
+            model.add_regressor('marketing')
+            model.add_regressor('promotion')
             
             model.fit(sales_prophet)
             
-            # 예측 기간 설정 (사용자가 선택한 기간 그대로 사용)
-            forecast_periods = forecast_days
+            # Create future dataframe
+            future = model.make_future_dataframe(periods=forecast_days)
             
-            # 마지막 데이터 날짜부터 예측 시작
-            last_date = sales_prophet['ds'].max()
-            future_dates = pd.date_range(start=last_date, periods=forecast_periods + 1, freq='D')[1:]
-            future_df = pd.DataFrame({'ds': future_dates})
+            # Add regressor values to future dataframe
+            future = future.merge(marketing_df[['date', 'marketing']], left_on='ds', right_on='date', how='left')
+            future = future.merge(promotion_df[['date', 'promotion']], left_on='ds', right_on='date', how='left')
+            future = future.drop('date', axis=1)
             
-            forecast = model.predict(future_df)
+            # Fill missing values with 0
+            future['marketing'] = future['marketing'].fillna(0)
+            future['promotion'] = future['promotion'].fillna(0)
             
-            # 예측값 범위 조정
-            forecast['yhat'] = forecast['yhat'].clip(lower=min_sales, upper=upper_bound)
-            forecast['yhat_lower'] = forecast['yhat_lower'].clip(lower=min_sales)
+            # Make predictions
+            forecast = model.predict(future)
+            
+            # Convert predictions back from log scale
+            forecast['yhat'] = np.expm1(forecast['yhat'])
+            forecast['yhat_lower'] = np.expm1(forecast['yhat_lower'])
+            forecast['yhat_upper'] = np.expm1(forecast['yhat_upper'])
+            
+            # Calculate upper bound for clipping (max historical sales * 1.5)
+            upper_bound = sales_df['sales_amount'].max() * 1.5
+            
+            # Clip predictions
+            forecast['yhat'] = forecast['yhat'].clip(lower=0, upper=upper_bound)
+            forecast['yhat_lower'] = forecast['yhat_lower'].clip(lower=0, upper=forecast['yhat'])
             forecast['yhat_upper'] = forecast['yhat_upper'].clip(lower=forecast['yhat'], upper=upper_bound)
 
             # Add warning for short data periods

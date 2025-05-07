@@ -349,17 +349,23 @@ if sales_file and marketing_file and promotion_file:
             
             model.fit(sales_prophet)
             
+            # 마케팅/프로모션 date 컬럼을 무조건 datetime으로 변환
+            marketing_df['date'] = pd.to_datetime(marketing_df['date'])
+            promotion_df['date'] = pd.to_datetime(promotion_df['date'])
+
             # Create future dataframe
             future = model.make_future_dataframe(periods=forecast_days)
 
-            # [1차] future 생성 직후 NaN 제거
-            if future['ds'].isna().any():
-                st.write('future 생성 직후 ds NaN row:', future[future['ds'].isna()])
-            future = future[future['ds'].notna()]
+            # future 생성 직후 ds NaN row 및 타입 출력
+            st.write('future 생성 직후 ds dtype:', future['ds'].dtype)
+            st.write('future 생성 직후 ds NaN row:', future[future['ds'].isna()])
 
             # Add regressor values to future dataframe
             future = future.merge(marketing_df[['date', 'marketing']], left_on='ds', right_on='date', how='left')
             future = future.merge(promotion_df[['date', 'promotion']], left_on='ds', right_on='date', how='left')
+            st.write('merge 후 future head:', future.head())
+            st.write('merge 후 ds dtype:', future['ds'].dtype)
+            st.write('merge 후 ds NaN row:', future[future['ds'].isna()])
             if 'date' in future.columns:
                 future = future.drop('date', axis=1)
 
@@ -367,16 +373,11 @@ if sales_file and marketing_file and promotion_file:
             future['marketing'] = future['marketing'].fillna(0)
             future['promotion'] = future['promotion'].fillna(0)
 
-            # [2차] merge 후 NaN 제거 및 디버깅 출력
+            # 예측 직전 ds NaN row 및 타입 출력
+            st.write('예측 직전 ds dtype:', future['ds'].dtype)
+            st.write('예측 직전 ds NaN row:', future[future['ds'].isna()])
             if future['ds'].isna().any():
-                st.write('merge 후 ds NaN row:', future[future['ds'].isna()])
-            future = future[future['ds'].notna()]
-            
-            # [3차] 예측 직전 NaN 체크 및 강제 중단
-            if future['ds'].isna().any():
-                st.error("예측 직전에도 ds 컬럼에 NaN이 남아있습니다. 아래 데이터를 확인하세요.")
-                st.write(future[future['ds'].isna()])
-                st.stop()
+                raise ValueError("예측 직전에도 ds 컬럼에 NaN이 남아있습니다.")
 
             # Make predictions
             forecast = model.predict(future)
@@ -580,4 +581,8 @@ if sales_file and marketing_file and promotion_file:
 
     except Exception as e:
         st.error(f"Error processing data: {str(e)}")
-        st.info("Please make sure your CSV files match the sample template format.") # force update from desktop copy
+        # 디버깅 정보 추가 출력
+        if 'future' in locals():
+            st.write('future (except):', future.head())
+            st.write('future ds NaN row (except):', future[future['ds'].isna()])
+        st.info("Please make sure your CSV files match the sample template format.")

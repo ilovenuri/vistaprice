@@ -452,6 +452,55 @@ if sales_file and marketing_file and promotion_file:
                   - 고객 세그먼트 확대
                 """)
 
+            # --- 모든 분석/표/프롬프트/AI 인사이트 코드를 try 블록 안에만 위치 ---
+            forecast['date'] = pd.to_datetime(forecast['ds'])
+            forecast['is_weekend'] = forecast['date'].dt.dayofweek >= 5
+            weekend_avg = forecast[forecast['is_weekend']]['yhat'].mean()
+            weekday_avg = forecast[~forecast['is_weekend']]['yhat'].mean()
+            weekend_ratio = weekend_avg / weekday_avg if weekday_avg > 0 else 0
+            weekend_diff = weekend_avg - weekday_avg
+            future_avg = forecast['yhat'].tail(forecast_days).mean()
+            trend_direction = "상승" if future_avg > current_avg else "하락"
+            trend_percentage = abs((future_avg - current_avg) / current_avg * 100)
+            st.markdown(f"""
+            ### 📊 매출 분석 및 인사이트
+            - **평균 일일 매출**: {current_avg:,.0f}원
+            - **향후 {forecast_days}일 매출 추세**: {trend_direction}세 ({trend_percentage:.1f}%)
+            - **주간 패턴**: {get_weekly_pattern(sales_prophet)}
+            - **예상 평균 일일 매출**: {future_avg:,.0f}원
+            - **예상 매출 범위**: {forecast['yhat_lower'].tail(forecast_days).mean():,.0f}원 ~ {forecast['yhat_upper'].tail(forecast_days).mean():,.0f}원
+            - **주요 예상 이벤트**: {get_expected_events(forecast)}
+            #### 📊 주중/주말 매출 비교 (예측값 기준)
+            | 구분 | 평균 매출(원) |
+            |------|--------------|
+            | 주중 | {weekday_avg:,.0f} |
+            | 주말 | {weekend_avg:,.0f} |
+            - **주말/주중 비율**: {weekend_ratio:.2%}
+            - **차이**: {weekend_diff:,.0f}원
+            향후 {forecast_days}일 예측 평균 매출: {future_avg:,.0f}원
+            주중 평균 매출: {weekday_avg:,.0f}원
+            주말 평균 매출: {weekend_avg:,.0f}원
+            주말/주중 비율: {weekend_ratio:.2%}
+            매출 추세: {trend_direction} ({trend_percentage:.1f}%)
+            """)
+            if weekend_ratio < 0.5:
+                st.markdown("""
+                **해석:**  
+                - 주말 매출이 주중 대비 매우 낮습니다.  
+                - 주말 프로모션, 이벤트, 광고 강화 필요
+                """)
+            elif weekend_ratio > 1.2:
+                st.markdown("""
+                **해석:**  
+                - 주말 매출이 주중 대비 20% 이상 높습니다.  
+                - 주말 집중 마케팅, 인기 상품 재고 확보가 중요
+                """)
+            else:
+                st.markdown("""
+                **해석:**  
+                - 주중/주말 매출이 비슷하게 유지되고 있습니다.  
+                - 전체적인 마케팅 균형 유지
+                """)
             # --- Gemini AI 인사이트 생성 기능 전체 try 블록 안에 위치 ---
             gemini_api_key = "AIzaSyBKzivQ_p2xiib8n5jUU9me47QP5M9z_i0"
             def get_gemini_insight(prompt, api_key):
@@ -546,45 +595,6 @@ if sales_file and marketing_file and promotion_file:
             
             st.markdown(f"#### 4. 예측 결과 테이블 (향후 {forecast_days}일)")
             st.dataframe(forecast_table, use_container_width=True)
-
-            # 예측 데이터에서 주중/주말 매출 비교 (정량+정성 분석)
-            forecast['date'] = pd.to_datetime(forecast['ds'])
-            forecast['is_weekend'] = forecast['date'].dt.dayofweek >= 5
-            weekend_avg = forecast[forecast['is_weekend']]['yhat'].mean()
-            weekday_avg = forecast[~forecast['is_weekend']]['yhat'].mean()
-            weekend_ratio = weekend_avg / weekday_avg if weekday_avg > 0 else 0
-            weekend_diff = weekend_avg - weekday_avg
-
-            st.markdown(f"""
-            #### 📊 주중/주말 매출 비교 (예측값 기준)
-            | 구분 | 평균 매출(원) |
-            |------|--------------|
-            | 주중 | {weekday_avg:,.0f} |
-            | 주말 | {weekend_avg:,.0f} |
-
-            - **주말/주중 비율**: {weekend_ratio:.2%}
-            - **차이**: {weekend_diff:,.0f}원
-            """)
-
-            # 정성적(qualitative) 해석/제안
-            if weekend_ratio < 0.5:
-                st.markdown("""
-                **해석:**  
-                - 주말 매출이 주중 대비 매우 낮습니다.  
-                - 주말 프로모션, 이벤트, 광고 강화 필요
-                """)
-            elif weekend_ratio > 1.2:
-                st.markdown("""
-                **해석:**  
-                - 주말 매출이 주중 대비 20% 이상 높습니다.  
-                - 주말 집중 마케팅, 인기 상품 재고 확보가 중요
-                """)
-            else:
-                st.markdown("""
-                **해석:**  
-                - 주중/주말 매출이 비슷하게 유지되고 있습니다.  
-                - 전체적인 마케팅 균형 유지
-                """)
 
         with tab1:
             st.subheader("Sales Data")

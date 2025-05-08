@@ -71,6 +71,7 @@ CSV 파일은 다음과 같은 컬럼을 포함해야 합니다:
 - Prophet 1.1.5
 - Pandas 2.2.0
 - Plotly 5.18.0
+- google-generativeai 0.5.2  # Gemini AI 인사이트 기능용
 
 ## 라이선스
 

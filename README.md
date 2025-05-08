@@ -7,11 +7,13 @@
 ## 데모
 
 웹 브라우저에서 바로 사용해보실 수 있습니다: [Streamlit Cloud Demo](https://vistaprice.streamlit.app)
+※ Gemini AI 기능은 로컬에서만 작동합니다.
 
 ## 주요 기능
 
 - CSV 파일 업로드를 통한 데이터 분석
 - Prophet 모델을 사용한 시계열 예측
+- Gemini AI를 활용한 매출 전략 리포트 자동 생성 (경영 의사결정에 바로 활용 가능한 구체적 인사이트 제공)
 - 7일 이동평균을 활용한 트렌드 분석
 - 요일 및 휴일 효과를 고려한 예측
 - 실제 데이터와 예측 결과의 시각화
@@ -41,6 +43,14 @@ pip install -r requirements.txt
 
 ```bash
 streamlit run app.py
+```
+
+## 실행 전 환경설정 (.env 파일)
+
+Gemini AI 인사이트 기능을 사용하려면, 프로젝트 루트 또는 sales_forecast_app 폴더 내에 `.env` 파일을 생성하고 아래와 같이 본인의 Gemini API 키를 입력해야 합니다.
+
+```
+GOOGLE_API_KEY=여기에_본인의_Gemini_API_키_입력
 ```
 
 ## 입력 데이터 형식
@@ -73,3 +83,5 @@ MIT License
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request 
+
+예측 결과 하단의 "Gemini AI 인사이트 생성" 버튼을 누르면, 최근 매출 변화 원인, 사업적 영향, 실질적 개선 전략, 추가 분석 제안까지 포함된 전략 리포트가 자동 생성됩니다. 

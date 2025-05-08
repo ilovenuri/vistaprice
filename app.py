@@ -365,12 +365,16 @@ if sales_file and marketing_file and promotion_file:
             # 예측 기간 설정 (사용자가 선택한 기간 그대로 사용)
             forecast_periods = forecast_days
             
-            # 마지막 데이터 날짜부터 예측 시작
-            last_date = sales_prophet['ds'].max()
-            future_dates = pd.date_range(start=last_date, periods=forecast_periods + 1, freq='D')[1:]
-            future_df = pd.DataFrame({'ds': future_dates})
+            # Prophet의 make_future_dataframe() 함수 사용
+            future = model.make_future_dataframe(periods=forecast_periods, freq='D')
             
-            forecast = model.predict(future_df)
+            # 디버깅을 위한 future 데이터프레임 정보 출력
+            st.write("Future DataFrame Info:")
+            st.write(f"Shape: {future.shape}")
+            st.write(f"Date Range: {future['ds'].min()} to {future['ds'].max()}")
+            st.write(f"NaN values in ds: {future['ds'].isna().sum()}")
+            
+            forecast = model.predict(future)
             
             # 예측값 범위 조정
             forecast['yhat'] = forecast['yhat'].clip(lower=min_sales, upper=upper_bound)

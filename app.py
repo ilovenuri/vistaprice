@@ -619,4 +619,14 @@ if sales_file and marketing_file and promotion_file:
 
     except Exception as e:
         st.error(f"Error processing data: {str(e)}")
-        st.info("Please make sure your CSV files match the sample template format.") # force update from desktop copy
+        st.info("Please make sure your CSV files match the sample template format.")
+        if 'sales_prophet' in locals():
+            st.write("[디버깅] sales_prophet.head():", sales_prophet.head())
+            st.write("[디버깅] sales_prophet NaN count:", sales_prophet.isna().sum())
+        if 'future' in locals():
+            st.write("[디버깅] future.head():", future.head())
+            st.write("[디버깅] future NaN count:", future.isna().sum())
+        if 'forecast' in locals():
+            st.write("[디버깅] forecast.head():", forecast.head())
+            st.write("[디버깅] forecast NaN count:", forecast.isna().sum())
+        st.stop()

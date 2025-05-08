@@ -452,14 +452,13 @@ if sales_file and marketing_file and promotion_file:
                   - 고객 세그먼트 확대
                 """)
 
-            # --- Gemini AI 인사이트 생성 기능 추가 ---
+            # --- Gemini AI 인사이트 생성 기능 전체 try 블록 안에 위치 ---
             gemini_api_key = "AIzaSyBKzivQ_p2xiib8n5jUU9me47QP5M9z_i0"
             def get_gemini_insight(prompt, api_key):
                 genai.configure(api_key=api_key)
                 model = genai.GenerativeModel('gemini-pro')
                 response = model.generate_content(prompt)
                 return response.text
-
             analysis_prompt = f"""
             최근 30일 평균 매출: {current_avg:,.0f}원
             향후 30일 예측 평균 매출: {future_avg:,.0f}원
@@ -470,7 +469,6 @@ if sales_file and marketing_file and promotion_file:
             주요 이벤트: {get_expected_events(forecast)}
             위 데이터를 바탕으로, 매출 인사이트와 개선 제안을 3~5문장으로 요약해줘.
             """
-
             if st.button("Gemini AI 인사이트 생성"):
                 with st.spinner("Gemini가 분석 중입니다..."):
                     ai_insight = get_gemini_insight(analysis_prompt, gemini_api_key)

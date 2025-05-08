@@ -23,17 +23,18 @@ def get_weekly_pattern(df):
     return f"주간 최고 매출일: {peak_day}"
 
 def get_expected_events(forecast):
-    """예상되는 주요 이벤트 분석"""
-    # 주말/휴일 식별
+    """예상되는 주요 이벤트 분석 (정량+정성)"""
     forecast['date'] = pd.to_datetime(forecast['ds'])
     forecast['is_weekend'] = forecast['date'].dt.dayofweek >= 5
     weekend_sales = forecast[forecast['is_weekend']]['yhat'].mean()
     weekday_sales = forecast[~forecast['is_weekend']]['yhat'].mean()
-    
-    if weekend_sales > weekday_sales * 1.2:
-        return "주말 매출이 평일 대비 20% 이상 높을 것으로 예상"
+    ratio = weekend_sales / weekday_sales if weekday_sales > 0 else 0
+    if ratio < 0.5:
+        return f"주말 매출이 주중 대비 매우 낮음 (주중 평균: {weekday_sales:,.0f}원, 주말 평균: {weekend_sales:,.0f}원)"
+    elif ratio > 1.2:
+        return f"주말 매출이 평일 대비 20% 이상 높음 (주중 평균: {weekday_sales:,.0f}원, 주말 평균: {weekend_sales:,.0f}원)"
     else:
-        return "주중/주말 매출이 안정적으로 유지될 것으로 예상"
+        return f"주중/주말 매출이 비슷하게 유지됨 (주중 평균: {weekday_sales:,.0f}원, 주말 평균: {weekend_sales:,.0f}원)"
 
 def get_csv_download_link(csv_string, filename):
     """Generates a link to download the CSV file"""
@@ -521,6 +522,45 @@ if sales_file and marketing_file and promotion_file:
             
             st.markdown(f"#### 4. 예측 결과 테이블 (향후 {forecast_days}일)")
             st.dataframe(forecast_table, use_container_width=True)
+
+            # 예측 데이터에서 주중/주말 매출 비교 (정량+정성 분석)
+            forecast['date'] = pd.to_datetime(forecast['ds'])
+            forecast['is_weekend'] = forecast['date'].dt.dayofweek >= 5
+            weekend_avg = forecast[forecast['is_weekend']]['yhat'].mean()
+            weekday_avg = forecast[~forecast['is_weekend']]['yhat'].mean()
+            weekend_ratio = weekend_avg / weekday_avg if weekday_avg > 0 else 0
+            weekend_diff = weekend_avg - weekday_avg
+
+            st.markdown(f"""
+            #### 📊 주중/주말 매출 비교 (예측값 기준)
+            | 구분 | 평균 매출(원) |
+            |------|--------------|
+            | 주중 | {weekday_avg:,.0f} |
+            | 주말 | {weekend_avg:,.0f} |
+
+            - **주말/주중 비율**: {weekend_ratio:.2%}
+            - **차이**: {weekend_diff:,.0f}원
+            """)
+
+            # 정성적(qualitative) 해석/제안
+            if weekend_ratio < 0.5:
+                st.markdown("""
+                **해석:**  
+                - 주말 매출이 주중 대비 매우 낮습니다.  
+                - 주말 프로모션, 이벤트, 광고 강화 필요
+                """)
+            elif weekend_ratio > 1.2:
+                st.markdown("""
+                **해석:**  
+                - 주말 매출이 주중 대비 20% 이상 높습니다.  
+                - 주말 집중 마케팅, 인기 상품 재고 확보가 중요
+                """)
+            else:
+                st.markdown("""
+                **해석:**  
+                - 주중/주말 매출이 비슷하게 유지되고 있습니다.  
+                - 전체적인 마케팅 균형 유지
+                """)
 
         with tab1:
             st.subheader("Sales Data")

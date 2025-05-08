@@ -12,9 +12,13 @@ import matplotlib.pyplot as plt
 from scipy import stats
 import chardet
 import google.generativeai as genai
+import os
+from dotenv import load_dotenv
 
 # Page config
 st.set_page_config(page_title="Marketing Effect & Sales Forecast App", layout="wide")
+
+load_dotenv()
 
 def get_weekly_pattern(df):
     """주간 매출 패턴 분석"""
@@ -502,21 +506,31 @@ if sales_file and marketing_file and promotion_file:
                 - 전체적인 마케팅 균형 유지
                 """)
             # --- Gemini AI 인사이트 생성 기능 전체 try 블록 안에 위치 ---
-            gemini_api_key = "AIzaSyBKzivQ_p2xiib8n5jUU9me47QP5M9z_i0"
+            gemini_api_key = os.getenv("GOOGLE_API_KEY")
             def get_gemini_insight(prompt, api_key):
                 genai.configure(api_key=api_key)
-                model = genai.GenerativeModel('gemini-pro')
+                model = genai.GenerativeModel('gemini-2.0-flash')
                 response = model.generate_content(prompt)
                 return response.text
             analysis_prompt = f"""
-            최근 30일 평균 매출: {current_avg:,.0f}원
-            향후 30일 예측 평균 매출: {future_avg:,.0f}원
-            주중 평균 매출: {weekday_avg:,.0f}원
-            주말 평균 매출: {weekend_avg:,.0f}원
-            주말/주중 비율: {weekend_ratio:.2%}
-            매출 추세: {trend_direction} ({trend_percentage:.1f}%)
-            주요 이벤트: {get_expected_events(forecast)}
-            위 데이터를 바탕으로, 매출 인사이트와 개선 제안을 3~5문장으로 요약해줘.
+            [매출 데이터 요약]
+            - 최근 30일 평균 매출: {current_avg:,.0f}원
+            - 향후 {forecast_days}일 예측 평균 매출: {future_avg:,.0f}원
+            - 주중 평균 매출: {weekday_avg:,.0f}원
+            - 주말 평균 매출: {weekend_avg:,.0f}원
+            - 주말/주중 비율: {weekend_ratio:.2%}
+            - 매출 추세: {trend_direction} ({trend_percentage:.1f}%)
+            - 주요 이벤트: {get_expected_events(forecast)}
+
+            [요구사항]
+            위 데이터를 바탕으로, 아래 4가지 항목을 포함한 전략 리포트 형식의 인사이트를 10문장 이상으로 작성해줘.
+
+            1. 최근 매출 변화의 주요 원인 분석 (패턴, 이상점, 고객 행동 등)
+            2. 사업적 영향 및 리스크 평가 (지속 시나리오, 현금흐름, 브랜드 영향 등)
+            3. 실질적 개선 전략 제안 (프로모션, 마케팅, 신제품, 타깃 마케팅 등)
+            4. 추가 데이터 수집/분석 제안 (고객 피드백, 경쟁사, 외부 데이터 등)
+
+            각 항목별로 구체적이고 실질적인 내용을 포함해, 경영자가 바로 실행에 옮길 수 있도록 작성해줘.
             """
             if st.button("Gemini AI 인사이트 생성"):
                 with st.spinner("Gemini가 분석 중입니다..."):

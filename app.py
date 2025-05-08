@@ -327,17 +327,22 @@ if sales_file and marketing_file and promotion_file:
             # 데이터 기간이 충분한지 확인
             date_range = (sales_prophet['ds'].max() - sales_prophet['ds'].min()).days
             
-            # Prophet 모델 파라미터 설정
+            # 이상치 제거 (1~99퍼센타일로 clip)
+            q_low = sales_prophet['y'].quantile(0.01)
+            q_high = sales_prophet['y'].quantile(0.99)
+            sales_prophet['y'] = sales_prophet['y'].clip(lower=q_low, upper=q_high)
+            
+            # Prophet 모델 파라미터 조정 (신뢰구간 개선)
             if date_range < 30:  # 데이터가 30일 미만인 경우
                 model = Prophet(
                     yearly_seasonality=False,
                     weekly_seasonality=True,
                     daily_seasonality=False,
                     growth='linear',
-                    changepoint_prior_scale=0.05,
-                    seasonality_prior_scale=10.0,
+                    changepoint_prior_scale=0.01,   # 더 작게
+                    seasonality_prior_scale=2.0,    # 더 작게
                     seasonality_mode='multiplicative',
-                    interval_width=0.85  # 85% 신뢰구간으로 축소
+                    interval_width=0.80             # 더 좁게
                 )
             else:
                 model = Prophet(
@@ -345,10 +350,10 @@ if sales_file and marketing_file and promotion_file:
                     weekly_seasonality=True,
                     daily_seasonality=True if date_range > 7 else False,
                     growth='linear',
-                    changepoint_prior_scale=0.05,
-                    seasonality_prior_scale=10.0,
+                    changepoint_prior_scale=0.01,   # 더 작게
+                    seasonality_prior_scale=2.0,    # 더 작게
                     seasonality_mode='multiplicative',
-                    interval_width=0.85  # 85% 신뢰구간으로 축소
+                    interval_width=0.80             # 더 좁게
                 )
             
             # 과거 데이터 통계 계산
